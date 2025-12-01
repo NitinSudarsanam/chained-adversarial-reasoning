@@ -143,7 +143,7 @@ class AdversarialTrainer:
             
             # Train step
             metrics = train_step(
-                model=self.discriminator.model,
+                model=self.discriminator,
                 optimizer=self.disc_optimizer,
                 prompts=[prompt],
                 outputs=[stage_tests],
@@ -230,7 +230,7 @@ class AdversarialTrainer:
             
             # Train step
             metrics = train_step(
-                model=self.generator.model,
+                model=self.generator,
                 optimizer=self.gen_optimizer,
                 prompts=[prompt],
                 outputs=[stage_output],
