@@ -32,6 +32,18 @@ class LLMGenerator:
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
     
+    def train(self):
+        """Set model to training mode."""
+        self.model.train()
+    
+    def eval(self):
+        """Set model to evaluation mode."""
+        self.model.eval()
+    
+    def parameters(self):
+        """Return model parameters for optimizer."""
+        return self.model.parameters()
+    
     def generate_stage_output(
         self,
         problem: str,
@@ -139,20 +151,32 @@ class LLMGenerator:
         Returns:
             Log probabilities tensor
         """
+        # Handle empty output
+        if not output or not output.strip():
+            return torch.tensor([0.0], device=self.device, requires_grad=True)
+        
         # Tokenize
         full_text = prompt + output
-        inputs = self.tokenizer(full_text, return_tensors="pt").to(self.device)
-        prompt_inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+        inputs = self.tokenizer(full_text, return_tensors="pt", truncation=True, max_length=2048).to(self.device)
+        prompt_inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=2048).to(self.device)
         
-        # Get model outputs
-        with torch.no_grad():
-            outputs = self.model(**inputs)
-            logits = outputs.logits
+        # Get model outputs (WITH gradients for training)
+        outputs = self.model(**inputs)
+        logits = outputs.logits
         
         # Get log probs for generated tokens only
         prompt_len = prompt_inputs.input_ids.shape[1]
+        
+        # Handle edge case where output is too short
+        if inputs.input_ids.shape[1] <= prompt_len:
+            return torch.tensor([0.0], device=self.device, requires_grad=True)
+        
         generated_logits = logits[0, prompt_len-1:-1, :]
         generated_tokens = inputs.input_ids[0, prompt_len:]
+        
+        # Handle empty generation
+        if generated_tokens.shape[0] == 0:
+            return torch.tensor([0.0], device=self.device, requires_grad=True)
         
         # Compute log probabilities
         log_probs = torch.nn.functional.log_softmax(generated_logits, dim=-1)

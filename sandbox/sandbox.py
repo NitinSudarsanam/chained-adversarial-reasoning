@@ -44,6 +44,29 @@ class Sandbox:
         if timeout is None:
             timeout = self.timeout
         
+        # Handle empty inputs
+        if not code or not code.strip():
+            return ExecutionResult(
+                passed=False,
+                num_passed=0,
+                num_total=0,
+                errors=["Empty code provided"],
+                stdout="",
+                stderr="Empty code",
+                timed_out=False
+            )
+        
+        if not tests or not tests.strip():
+            return ExecutionResult(
+                passed=False,
+                num_passed=0,
+                num_total=0,
+                errors=["Empty tests provided"],
+                stdout="",
+                stderr="Empty tests",
+                timed_out=False
+            )
+        
         # Create temporary directory for execution
         with tempfile.TemporaryDirectory() as tmpdir:
             # Write code and tests to files

@@ -48,11 +48,11 @@ class AdversarialTrainer:
         
         # Create optimizers
         self.gen_optimizer = create_optimizer(
-            generator.model,
+            generator,
             config.learning_rate
         )
         self.disc_optimizer = create_optimizer(
-            discriminator.model,
+            discriminator,
             config.learning_rate
         )
         
@@ -82,8 +82,8 @@ class AdversarialTrainer:
         print(f"Training discriminator at stage {stage_id} for {n_steps} steps...")
         
         # Freeze generator
-        freeze_model(self.generator.model)
-        unfreeze_model(self.discriminator.model)
+        freeze_model(self.generator)
+        unfreeze_model(self.discriminator)
         
         total_reward = 0.0
         total_loss = 0.0
@@ -185,8 +185,8 @@ class AdversarialTrainer:
         print(f"Training generator at stage {stage_id} for {n_steps} steps...")
         
         # Freeze discriminator
-        freeze_model(self.discriminator.model)
-        unfreeze_model(self.generator.model)
+        freeze_model(self.discriminator)
+        unfreeze_model(self.generator)
         
         total_reward = 0.0
         total_loss = 0.0

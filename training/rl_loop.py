@@ -84,6 +84,10 @@ def train_step(
         curr_lp_sum = curr_lp.sum()
         old_lp_sum = old_lp.sum()
         
+        # Skip if log probs are invalid
+        if torch.isnan(curr_lp_sum) or torch.isnan(old_lp_sum) or torch.isinf(curr_lp_sum) or torch.isinf(old_lp_sum):
+            continue
+        
         # Compute loss for this example
         loss = compute_policy_loss(
             curr_lp_sum.unsqueeze(0),
@@ -92,6 +96,11 @@ def train_step(
             clip_epsilon
         )
         losses.append(loss)
+    
+    # Check if we have any valid losses
+    if len(losses) == 0:
+        print("Warning: No valid losses computed, skipping update")
+        return {'policy_loss': float('nan')}
     
     # Average loss across examples
     total_loss = torch.stack(losses).mean()
