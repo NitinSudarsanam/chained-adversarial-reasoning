@@ -28,7 +28,7 @@ def main():
     parser.add_argument(
         '--model',
         type=str,
-        default="Qwen/Qwen2.5-Coder-2.5B-Instruct",  # Small model that fits in 15GB GPU
+        default="Qwen/Qwen2.5-Coder-3B-Instruct",  # Small model that fits in 15GB GPU
         help="HuggingFace model"
     )
     parser.add_argument(

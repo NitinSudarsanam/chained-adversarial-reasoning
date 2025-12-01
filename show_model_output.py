@@ -6,7 +6,7 @@ from data.problem_dataset import load_problems
 
 # Load model
 print("Loading model (takes ~30 seconds)...")
-generator = LLMGenerator(model_name="Qwen/Qwen2.5-Coder-2.5B-Instruct", device="cuda")
+generator = LLMGenerator(model_name="Qwen/Qwen2.5-Coder-3B-Instruct", device="cuda")
 
 # Load first problem (use function-based problems)
 problems = load_problems("data/function_problems.json")
