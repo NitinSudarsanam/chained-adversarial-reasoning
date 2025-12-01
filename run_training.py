@@ -41,7 +41,7 @@ def main():
     parser.add_argument(
         '--problems-file',
         type=str,
-        default="data/example_problems.json",
+        default="data/function_problems.json",
         help="Path to problems JSON file"
     )
     parser.add_argument(

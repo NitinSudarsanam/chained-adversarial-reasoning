@@ -21,9 +21,10 @@ class LLMGenerator:
         
         print(f"Loading generator model: {model_name}")
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        # Always use float32 for numerical stability (float16 can cause inf/nan issues)
         self.model = AutoModelForCausalLM.from_pretrained(
             model_name,
-            torch_dtype=torch.float32 if device == "cpu" else torch.float16,
+            torch_dtype=torch.float32,
             device_map=device
         )
         self.model.eval()
@@ -202,6 +203,10 @@ class LLMGenerator:
         Returns:
             Generated text
         """
+        # CRITICAL: Always set to eval mode before generation
+        was_training = self.model.training
+        self.model.eval()
+        
         inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=2048).to(self.device)
         
         # Clamp temperature to safe range to avoid numerical issues
@@ -221,18 +226,22 @@ class LLMGenerator:
                     repetition_penalty=1.1,  # Prevent repetition issues
                     no_repeat_ngram_size=3   # Prevent exact repetitions
                 )
-            except (RuntimeError, torch.cuda.CudaError, Exception) as e:
-                # If generation fails due to CUDA error, clear cache and return empty
-                print(f"Warning: Generation failed with error: {e}")
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-                    torch.cuda.synchronize()
-                # Return empty string to skip this example
+            except Exception as e:
+                # If generation fails, return empty string to skip this example
+                print(f"Warning: Generation failed with error: {type(e).__name__}: {str(e)[:100]}")
+                # Restore training mode if needed
+                if was_training:
+                    self.model.train()
+                # Don't try to use CUDA operations after CUDA error - just return empty
                 return ""
         
         # Decode only the generated part
         generated_tokens = outputs[0][inputs.input_ids.shape[1]:]
         generated_text = self.tokenizer.decode(generated_tokens, skip_special_tokens=True)
+        
+        # Restore training mode if it was on before
+        if was_training:
+            self.model.train()
         
         return generated_text
     
