@@ -20,7 +20,7 @@ def main():
     parser.add_argument(
         '--model',
         type=str,
-        default="Qwen/Qwen2.5-Coder-0.5B-Instruct",
+        default="Qwen/Qwen2.5-Coder-7B-Instruct",
         help="HuggingFace model"
     )
     parser.add_argument(
@@ -32,7 +32,7 @@ def main():
     parser.add_argument(
         '--problems',
         type=str,
-        default="data/example_problems.json",
+        default="data/function_problems.json",
         help="Path to problems JSON file"
     )
     parser.add_argument(

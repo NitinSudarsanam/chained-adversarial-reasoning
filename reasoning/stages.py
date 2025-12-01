@@ -146,23 +146,22 @@ import pytest
         id=5,
         name="Executable Code",
         description="Final Python implementation",
-        generator_prompt_template="""You are a Python expert. Complete this function with working code.
+        generator_prompt_template="""You are a Python coding assistant. Write a complete, working Python function.
 
-Example of a complete function:
-def add_numbers(a: int, b: int) -> int:
-    result = a + b
-    return result
+IMPORTANT: 
+- Keep the EXACT function signature provided
+- Write actual working code, not comments or placeholders
+- Return the result
 
-Now implement this function:
-
+Function to implement:
 {function_signature}
-    pass  # Replace this with your implementation
 
-Problem: {problem}
+Problem description:
+{problem}
 
-Previous reasoning: {previous_stages}
+Write the complete function below (with actual code, not 'pass'):
 
-Write the complete function with the implementation (replace 'pass' with actual code):
+```python
 """,
         discriminator_prompt_template="""You are generating test cases for a coding problem and solution.
 

@@ -22,8 +22,8 @@ print("="*80)
 
 # Minimal configuration - using larger model for better results
 config = TrainingConfig(
-    generator_model="Qwen/Qwen2.5-Coder-1.5B-Instruct",  # Larger model (was 350M)
-    discriminator_model="Qwen/Qwen2.5-Coder-1.5B-Instruct",
+    generator_model="Qwen/Qwen2.5-Coder-7B-Instruct",  # Larger model (was 350M)
+    discriminator_model="Qwen/Qwen2.5-Coder-7B-Instruct",
     device="cuda",
     n_discriminator_steps=1,  # Minimal
     n_generator_steps=1,      # Minimal

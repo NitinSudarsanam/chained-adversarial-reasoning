@@ -253,6 +253,10 @@ class UnifiedTrainer:
                         top_p=self.config.top_p,
                         function_signature=problem.function_signature
                     )
+                    if not output or not output.strip():
+                        print(f"    Warning: Empty code generated at stage {stage_id}")
+                    elif len(output) < 20:
+                        print(f"    Warning: Very short code at stage {stage_id}: {output[:50]}")
                 else:
                     output = self.model.generate_stage_output(
                         problem=problem.description,
@@ -263,6 +267,8 @@ class UnifiedTrainer:
                         temperature=self.config.temperature,
                         top_p=self.config.top_p
                     )
+                    if not output or not output.strip():
+                        print(f"    Warning: Empty output at stage {stage_id}")
                 
                 reasoning_chain.append(output)
                 
@@ -278,6 +284,8 @@ class UnifiedTrainer:
                 
                 if tests and tests.strip():
                     accumulated_tests.append(tests)
+                else:
+                    print(f"    Warning: Empty tests at stage {stage_id}")
         
         final_code = reasoning_chain[-1] if reasoning_chain else ""
         all_tests = "\n\n".join(accumulated_tests)
