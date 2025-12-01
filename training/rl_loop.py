@@ -28,7 +28,10 @@ def compute_policy_loss(
     ratio = torch.exp(log_probs - old_log_probs)
     
     # Normalize rewards (advantages)
-    if rewards.std() > 1e-8:
+    # Handle single reward case
+    if rewards.numel() == 1:
+        advantages = torch.zeros_like(rewards)
+    elif rewards.std() > 1e-8:
         advantages = (rewards - rewards.mean()) / (rewards.std() + 1e-8)
     else:
         advantages = rewards - rewards.mean()

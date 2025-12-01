@@ -196,17 +196,35 @@ import pytest
         Returns:
             Generated text
         """
-        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+        inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=2048).to(self.device)
+        
+        # Clamp temperature to safe range to avoid numerical issues
+        temperature = max(0.1, min(2.0, temperature))
+        top_p = max(0.1, min(1.0, top_p))
         
         with torch.no_grad():
-            outputs = self.model.generate(
-                **inputs,
-                max_new_tokens=max_new_tokens,
-                temperature=temperature,
-                top_p=top_p,
-                do_sample=True,
-                pad_token_id=self.tokenizer.pad_token_id
-            )
+            try:
+                outputs = self.model.generate(
+                    **inputs,
+                    max_new_tokens=max_new_tokens,
+                    temperature=temperature,
+                    top_p=top_p,
+                    do_sample=True,
+                    pad_token_id=self.tokenizer.pad_token_id,
+                    eos_token_id=self.tokenizer.eos_token_id,
+                    repetition_penalty=1.1,  # Prevent repetition issues
+                    no_repeat_ngram_size=3   # Prevent exact repetitions
+                )
+            except (RuntimeError, torch.cuda.CudaError) as e:
+                # If generation fails due to CUDA error, try with greedy decoding
+                print(f"Warning: Generation failed with sampling, falling back to greedy: {e}")
+                outputs = self.model.generate(
+                    **inputs,
+                    max_new_tokens=max_new_tokens,
+                    do_sample=False,  # Greedy decoding
+                    pad_token_id=self.tokenizer.pad_token_id,
+                    eos_token_id=self.tokenizer.eos_token_id
+                )
         
         # Decode only the generated part
         generated_tokens = outputs[0][inputs.input_ids.shape[1]:]
