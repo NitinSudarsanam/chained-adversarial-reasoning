@@ -150,14 +150,17 @@ import pytest
         if not output or not output.strip():
             return torch.tensor([0.0], device=self.device, requires_grad=True)
         
-        # Tokenize
+        # Tokenize with shorter max length to save memory
         full_text = prompt + output
-        inputs = self.tokenizer(full_text, return_tensors="pt", truncation=True, max_length=2048).to(self.device)
-        prompt_inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=2048).to(self.device)
+        inputs = self.tokenizer(full_text, return_tensors="pt", truncation=True, max_length=1024).to(self.device)
+        prompt_inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=1024).to(self.device)
         
         # Get model outputs (WITH gradients for training)
         outputs = self.model(**inputs)
         logits = outputs.logits
+        
+        # Delete inputs to free memory immediately
+        del inputs
         
         # Get log probs for generated tokens only
         prompt_len = prompt_inputs.input_ids.shape[1]
@@ -176,6 +179,9 @@ import pytest
         # Compute log probabilities
         log_probs = torch.nn.functional.log_softmax(generated_logits, dim=-1)
         token_log_probs = log_probs.gather(1, generated_tokens.unsqueeze(1)).squeeze(1)
+        
+        # Clean up intermediate tensors
+        del logits, generated_logits, generated_tokens, log_probs, prompt_inputs
         
         return token_log_probs
     
@@ -201,7 +207,7 @@ import pytest
         was_training = self.model.training
         self.model.eval()
         
-        inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=2048).to(self.device)
+        inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=1024).to(self.device)
         
         # Clamp temperature to safe range to avoid numerical issues
         temperature = max(0.1, min(2.0, temperature))

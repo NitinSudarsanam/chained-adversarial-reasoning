@@ -88,6 +88,7 @@ class AdversarialTrainer:
         total_reward = 0.0
         total_loss = 0.0
         num_updates = 0
+        num_skipped = 0
         
         for step in tqdm(range(n_steps), desc="Discriminator"):
             # Sample a problem
@@ -99,9 +100,13 @@ class AdversarialTrainer:
             )
             
             if not final_code or not final_code.strip():
+                num_skipped += 1
+                print(f"  Skipping step {step}: empty code generated")
                 continue
             
             if not accumulated_tests or not accumulated_tests.strip():
+                num_skipped += 1
+                print(f"  Skipping step {step}: empty tests generated")
                 continue
             
             # Get the tests generated at THIS stage for log probs
@@ -125,6 +130,8 @@ class AdversarialTrainer:
             )
             
             if not stage_tests or not stage_tests.strip():
+                num_skipped += 1
+                print(f"  Skipping step {step}: empty stage tests generated")
                 continue
             
             old_log_probs = self.discriminator.get_log_probs(prompt, stage_tests)
@@ -159,10 +166,15 @@ class AdversarialTrainer:
         avg_reward = total_reward / n_steps if n_steps > 0 else 0.0
         avg_loss = total_loss / num_updates if num_updates > 0 else 0.0
         
+        # Log summary
+        if num_skipped > 0:
+            print(f"\n  Warning: Skipped {num_skipped}/{n_steps} discriminator steps due to empty generation")
+        
         return {
             'avg_reward': avg_reward,
             'avg_loss': avg_loss,
-            'num_updates': num_updates
+            'num_updates': num_updates,
+            'num_skipped': num_skipped
         }
 
     
@@ -191,6 +203,7 @@ class AdversarialTrainer:
         total_reward = 0.0
         total_loss = 0.0
         num_updates = 0
+        num_skipped = 0
         
         for step in tqdm(range(n_steps), desc="Generator"):
             # Sample a problem
@@ -202,9 +215,13 @@ class AdversarialTrainer:
             )
             
             if not final_code or not final_code.strip():
+                num_skipped += 1
+                print(f"  Skipping step {step}: empty code generated")
                 continue
             
             if not accumulated_tests or not accumulated_tests.strip():
+                num_skipped += 1
+                print(f"  Skipping step {step}: empty tests generated")
                 continue
             
             # Get old log probs for THIS stage's generation
@@ -246,10 +263,15 @@ class AdversarialTrainer:
         avg_reward = total_reward / n_steps if n_steps > 0 else 0.0
         avg_loss = total_loss / num_updates if num_updates > 0 else 0.0
         
+        # Log summary
+        if num_skipped > 0:
+            print(f"\n  Warning: Skipped {num_skipped}/{n_steps} generator steps due to empty generation")
+        
         return {
             'avg_reward': avg_reward,
             'avg_loss': avg_loss,
-            'num_updates': num_updates
+            'num_updates': num_updates,
+            'num_skipped': num_skipped
         }
     
     def train_alternating(

@@ -16,8 +16,9 @@ def compute_generator_reward(execution_result: ExecutionResult) -> float:
         Reward in range [0.0, 1.0]
     """
     if execution_result.num_total == 0:
-        # No tests to pass - neutral reward
-        return 0.5
+        # No tests to pass - this is a failure case (discriminator failed to generate tests)
+        # Give zero reward to avoid rewarding the generator for doing nothing
+        return 0.0
     
     if execution_result.timed_out:
         # Timeout is a failure
