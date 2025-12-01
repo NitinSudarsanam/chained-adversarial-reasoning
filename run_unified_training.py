@@ -3,6 +3,14 @@
 import argparse
 import json
 from pathlib import Path
+import torch
+import gc
+
+# Clear GPU memory before starting
+if torch.cuda.is_available():
+    torch.cuda.empty_cache()
+    gc.collect()
+    print("Cleared GPU cache")
 
 from models.unified_model import UnifiedModel
 from sandbox.sandbox import Sandbox
@@ -20,7 +28,7 @@ def main():
     parser.add_argument(
         '--model',
         type=str,
-        default="Qwen/Qwen2.5-Coder-7B-Instruct",
+        default="Qwen/Qwen2.5-Coder-2.5B-Instruct",  # Small model that fits in 15GB GPU
         help="HuggingFace model"
     )
     parser.add_argument(
@@ -65,6 +73,18 @@ def main():
     print(f"  Problems: {args.problems}")
     print(f"  Steps per stage: {args.n_steps}")
     print(f"  Learning rate: {args.learning_rate}")
+    
+    # Show GPU memory status
+    if torch.cuda.is_available():
+        device = torch.cuda.current_device()
+        total = torch.cuda.get_device_properties(device).total_memory / 1024**3
+        allocated = torch.cuda.memory_allocated(device) / 1024**3
+        reserved = torch.cuda.memory_reserved(device) / 1024**3
+        print(f"\nGPU Memory:")
+        print(f"  Total: {total:.2f} GiB")
+        print(f"  Allocated: {allocated:.2f} GiB")
+        print(f"  Reserved: {reserved:.2f} GiB")
+        print(f"  Free: {total - reserved:.2f} GiB")
     print()
     
     # Load problems

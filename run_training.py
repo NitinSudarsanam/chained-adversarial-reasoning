@@ -22,13 +22,13 @@ def main():
     parser.add_argument(
         '--generator-model',
         type=str,
-        default="Qwen/Qwen2.5-Coder-7B-Instruct",
+        default="Qwen/Qwen2.5-Coder-2.5B-Instruct",  # Small model that fits in 15GB GPU
         help="HuggingFace model for generator"
     )
     parser.add_argument(
         '--discriminator-model',
         type=str,
-        default="Qwen/Qwen2.5-Coder-7B-Instruct",
+        default="Qwen/Qwen2.5-Coder-0.5B-Instruct",  # Small model that fits in 15GB GPU
         help="HuggingFace model for discriminator"
     )
     parser.add_argument(
