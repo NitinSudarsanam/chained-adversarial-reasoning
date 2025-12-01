@@ -1,0 +1,91 @@
+{
+  "problems": [
+    {
+      "id": "circular_buffer_median",
+      "description": "Implement a circular buffer that maintains a sliding window of integers and \ncan efficiently compute the median of the current window. The buffer has a fixed capacity and \noverwrites the oldest element when full. Support operations: add(value), get_median(), and get_size().",
+      "function_signature": "class CircularBufferMedian:\n    def __init__(self, capacity: int):\n        pass\n    def add(self, value: int) -> None:\n        pass\n    def get_median(self) -> float:\n        pass\n    def get_size(self) -> int:\n        pass",
+      "baseline_tests": [
+        "cb = CircularBufferMedian(3); cb.add(1); cb.add(2); cb.add(3); assert cb.get_median() == 2.0",
+        "cb = CircularBufferMedian(3); cb.add(5); assert cb.get_median() == 5.0",
+        "cb = CircularBufferMedian(2); cb.add(1); cb.add(2); cb.add(3); assert cb.get_median() == 2.5"
+      ],
+      "reference_solution": "class CircularBufferMedian:\n    def __init__(self, capacity: int):\n        self.capacity = capacity\n        self.buffer = []\n        self.index = 0\n    \n    def add(self, value: int) -> None:\n        if len(self.buffer) < self.capacity:\n            self.buffer.append(value)\n        else:\n            self.buffer[self.index] = value\n            self.index = (self.index + 1) % self.capacity\n    \n    def get_median(self) -> float:\n        sorted_buffer = sorted(self.buffer)\n        n = len(sorted_buffer)\n        if n % 2 == 1:\n            return float(sorted_buffer[n // 2])\n        else:\n            return (sorted_buffer[n // 2 - 1] + sorted_buffer[n // 2]) / 2.0\n    \n    def get_size(self) -> int:\n        return len(self.buffer)",
+      "difficulty": "medium",
+      "tags": [
+        "data-structures",
+        "sliding-window",
+        "median"
+      ]
+    },
+    {
+      "id": "bitwise_range_query",
+      "description": "Given an array of integers, implement a data structure that supports:\n1. update(index, value): Update array[index] to value\n2. query_xor(left, right): Return XOR of all elements from index left to right (inclusive)\n3. query_or(left, right): Return bitwise OR of all elements from index left to right (inclusive)",
+      "function_signature": "class BitwiseRangeQuery:\n    def __init__(self, arr: list[int]):\n        pass\n    def update(self, index: int, value: int) -> None:\n        pass\n    def query_xor(self, left: int, right: int) -> int:\n        pass\n    def query_or(self, left: int, right: int) -> int:\n        pass",
+      "baseline_tests": [
+        "brq = BitwiseRangeQuery([1, 2, 3, 4]); assert brq.query_xor(0, 3) == (1^2^3^4)",
+        "brq = BitwiseRangeQuery([5, 6, 7]); assert brq.query_or(0, 2) == (5|6|7)",
+        "brq = BitwiseRangeQuery([1, 2, 3]); brq.update(1, 5); assert brq.query_xor(0, 2) == (1^5^3)"
+      ],
+      "reference_solution": "class BitwiseRangeQuery:\n    def __init__(self, arr: list[int]):\n        self.arr = arr[:]\n    \n    def update(self, index: int, value: int) -> None:\n        self.arr[index] = value\n    \n    def query_xor(self, left: int, right: int) -> int:\n        result = 0\n        for i in range(left, right + 1):\n            result ^= self.arr[i]\n        return result\n    \n    def query_or(self, left: int, right: int) -> int:\n        result = 0\n        for i in range(left, right + 1):\n            result |= self.arr[i]\n        return result",
+      "difficulty": "medium",
+      "tags": [
+        "bitwise",
+        "range-query",
+        "data-structures"
+      ]
+    },
+    {
+      "id": "string_compression_with_frequency",
+      "description": "Implement a string compression algorithm that:\n1. Groups consecutive identical characters\n2. Replaces groups of 3+ chars with: char + count\n3. Keeps groups of 1-2 chars as-is\n4. Returns the shorter of original or compressed string\nExample: \"aaabbc\" -> \"a3bbc\" (7 chars -> 5 chars)\nExample: \"abc\" -> \"abc\" (no compression needed)",
+      "function_signature": "def compress_string(s: str) -> str:",
+      "baseline_tests": [
+        "assert compress_string('aaabbc') == 'a3bbc'",
+        "assert compress_string('abc') == 'abc'",
+        "assert compress_string('aabbcc') == 'aabbcc'",
+        "assert compress_string('aaaa') == 'a4'"
+      ],
+      "reference_solution": "def compress_string(s: str) -> str:\n    if not s:\n        return s\n    \n    compressed = []\n    count = 1\n    current = s[0]\n    \n    for i in range(1, len(s)):\n        if s[i] == current:\n            count += 1\n        else:\n            if count >= 3:\n                compressed.append(current + str(count))\n            else:\n                compressed.append(current * count)\n            current = s[i]\n            count = 1\n    \n    # Handle last group\n    if count >= 3:\n        compressed.append(current + str(count))\n    else:\n        compressed.append(current * count)\n    \n    compressed_str = ''.join(compressed)\n    return compressed_str if len(compressed_str) < len(s) else s",
+      "difficulty": "easy",
+      "tags": [
+        "string",
+        "compression",
+        "greedy"
+      ]
+    },
+    {
+      "id": "matrix_spiral_sum",
+      "description": "Given an m x n matrix of integers, return the sum of all elements \ntraversed in spiral order (clockwise from outside to inside). \nExample: [[1,2,3],[4,5,6],[7,8,9]] -> 1+2+3+6+9+8+7+4+5 = 45",
+      "function_signature": "def spiral_sum(matrix: list[list[int]]) -> int:",
+      "baseline_tests": [
+        "assert spiral_sum([[1,2,3],[4,5,6],[7,8,9]]) == 45",
+        "assert spiral_sum([[1,2],[3,4]]) == 10",
+        "assert spiral_sum([[1]]) == 1",
+        "assert spiral_sum([[1,2,3,4]]) == 10"
+      ],
+      "reference_solution": "def spiral_sum(matrix: list[list[int]]) -> int:\n    if not matrix or not matrix[0]:\n        return 0\n    \n    total = 0\n    top, bottom = 0, len(matrix) - 1\n    left, right = 0, len(matrix[0]) - 1\n    \n    while top <= bottom and left <= right:\n        # Traverse right\n        for col in range(left, right + 1):\n            total += matrix[top][col]\n        top += 1\n        \n        # Traverse down\n        for row in range(top, bottom + 1):\n            total += matrix[row][right]\n        right -= 1\n        \n        # Traverse left\n        if top <= bottom:\n            for col in range(right, left - 1, -1):\n                total += matrix[bottom][col]\n            bottom -= 1\n        \n        # Traverse up\n        if left <= right:\n            for row in range(bottom, top - 1, -1):\n                total += matrix[row][left]\n            left += 1\n    \n    return total",
+      "difficulty": "medium",
+      "tags": [
+        "matrix",
+        "spiral",
+        "traversal"
+      ]
+    },
+    {
+      "id": "interval_merge_with_priority",
+      "description": "Given a list of intervals where each interval has [start, end, priority], \nmerge overlapping intervals. When intervals overlap, keep the one with higher priority. \nIf priorities are equal, merge them into one interval.\nExample: [[1,3,1], [2,4,2], [5,7,1]] -> [[1,2,1], [2,4,2], [5,7,1]]",
+      "function_signature": "def merge_intervals_priority(intervals: list[list[int]]) -> list[list[int]]:",
+      "baseline_tests": [
+        "assert merge_intervals_priority([[1,3,1], [2,4,2]]) == [[1,2,1], [2,4,2]]",
+        "assert merge_intervals_priority([[1,3,1], [2,4,1]]) == [[1,4,1]]",
+        "assert merge_intervals_priority([[1,2,1]]) == [[1,2,1]]"
+      ],
+      "reference_solution": "def merge_intervals_priority(intervals: list[list[int]]) -> list[list[int]]:\n    if not intervals:\n        return []\n    \n    # Sort by start time\n    intervals.sort(key=lambda x: x[0])\n    result = [intervals[0]]\n    \n    for current in intervals[1:]:\n        last = result[-1]\n        \n        # Check for overlap\n        if current[0] <= last[1]:\n            # Overlapping\n            if current[2] > last[2]:\n                # Current has higher priority\n                if current[0] > last[0]:\n                    result[-1] = [last[0], current[0], last[2]]\n                    result.append(current)\n                else:\n                    result[-1] = current\n            elif current[2] == last[2]:\n                # Same priority, merge\n                result[-1] = [last[0], max(last[1], current[1]), last[2]]\n            # else: last has higher priority, keep it\n        else:\n            # No overlap\n            result.append(current)\n    \n    return result",
+      "difficulty": "hard",
+      "tags": [
+        "intervals",
+        "merge",
+        "priority"
+      ]
+    }
+  ]
+}
