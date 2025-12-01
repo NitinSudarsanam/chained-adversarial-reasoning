@@ -221,16 +221,14 @@ class LLMGenerator:
                     repetition_penalty=1.1,  # Prevent repetition issues
                     no_repeat_ngram_size=3   # Prevent exact repetitions
                 )
-            except (RuntimeError, torch.cuda.CudaError) as e:
-                # If generation fails due to CUDA error, try with greedy decoding
-                print(f"Warning: Generation failed with sampling, falling back to greedy: {e}")
-                outputs = self.model.generate(
-                    **inputs,
-                    max_new_tokens=max_new_tokens,
-                    do_sample=False,  # Greedy decoding
-                    pad_token_id=self.tokenizer.pad_token_id,
-                    eos_token_id=self.tokenizer.eos_token_id
-                )
+            except (RuntimeError, torch.cuda.CudaError, Exception) as e:
+                # If generation fails due to CUDA error, clear cache and return empty
+                print(f"Warning: Generation failed with error: {e}")
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                    torch.cuda.synchronize()
+                # Return empty string to skip this example
+                return ""
         
         # Decode only the generated part
         generated_tokens = outputs[0][inputs.input_ids.shape[1]:]

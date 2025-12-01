@@ -364,8 +364,10 @@ class AdversarialTrainer:
             # Use no_grad for stages before training_stage (frozen)
             use_grad = stage_id >= training_stage
             
-            if use_grad:
-                # Trainable generation
+            # Always use eval mode and no_grad for generation
+            # We only need gradients for get_log_probs, not generation
+            self.generator.eval()
+            with torch.no_grad():
                 if stage_id == 5:
                     output = self.generator.generate_code(
                         problem=problem.description,
@@ -386,35 +388,18 @@ class AdversarialTrainer:
                         temperature=self.config.temperature,
                         top_p=self.config.top_p
                     )
-            else:
-                # Frozen generation (no gradients)
-                with torch.no_grad():
-                    if stage_id == 5:
-                        output = self.generator.generate_code(
-                            problem=problem.description,
-                            reasoning_chain=reasoning_chain,
-                            prompt_template=stage.generator_prompt_template,
-                            max_new_tokens=self.config.max_new_tokens,
-                            temperature=self.config.temperature,
-                            top_p=self.config.top_p,
-                            function_signature=problem.function_signature
-                        )
-                    else:
-                        output = self.generator.generate_stage_output(
-                            problem=problem.description,
-                            previous_stages=reasoning_chain,
-                            stage_id=stage_id,
-                            prompt_template=stage.generator_prompt_template,
-                            max_new_tokens=self.config.max_new_tokens,
-                            temperature=self.config.temperature,
-                            top_p=self.config.top_p
-                        )
+            
+            # Restore training mode if this stage is trainable
+            if use_grad:
+                self.generator.train()
             
             reasoning_chain.append(output)
             
             # Generate tests for this stage
-            if use_grad:
-                # Trainable test generation
+            # Always use eval mode and no_grad for generation (even if trainable)
+            # We only need gradients for get_log_probs, not generation
+            self.discriminator.eval()
+            with torch.no_grad():
                 tests = self.discriminator.generate_tests(
                     problem=problem.description,
                     generator_code=output,
@@ -423,7 +408,13 @@ class AdversarialTrainer:
                     max_new_tokens=self.config.max_new_tokens,
                     temperature=self.config.temperature
                 )
-            else:
+            
+            # Restore training mode if this stage is trainable
+            if use_grad:
+                self.discriminator.train()
+            
+            # Old code kept for reference but not used:
+            if False and not use_grad:
                 # Frozen test generation
                 with torch.no_grad():
                     tests = self.discriminator.generate_tests(
