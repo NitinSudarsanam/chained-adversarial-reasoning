@@ -3,7 +3,7 @@
 import torch
 import re
 from typing import List
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 
 class LLMGenerator:
@@ -18,6 +18,13 @@ class LLMGenerator:
         """
         self.model_name = model_name
         self.device = device
+
+        quant_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_use_double_quant=True,
+        )
         
         print(f"Loading generator model: {model_name}")
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -25,7 +32,8 @@ class LLMGenerator:
         self.model = AutoModelForCausalLM.from_pretrained(
             model_name,
             torch_dtype=torch.float32,
-            device_map=device
+            device_map=device,
+            quantization_config=quant_config
         )
         self.model.eval()
         
