@@ -148,7 +148,7 @@ class LLMGenerator:
         # Additional cleaning for code
         output = self._clean_generated_code(output)
         
-        return output
+        return output.repalce("\t", "    ")
     
     def get_log_probs(self, prompt: str, output: str) -> torch.Tensor:
         """Get log probabilities for RL training.
@@ -296,6 +296,13 @@ class LLMGenerator:
         """
         # Look for ```python ... ``` blocks (closed)
         pattern = r'```python\s*(.*?)\s*```'
+        matches = re.findall(pattern, text, re.DOTALL)
+        
+        if matches:
+            return matches[0].strip()
+        
+        # Look for ``` python ... ``` blocks (closed)
+        pattern = r'``` python\s*(.*?)\s*```'
         matches = re.findall(pattern, text, re.DOTALL)
         
         if matches:
