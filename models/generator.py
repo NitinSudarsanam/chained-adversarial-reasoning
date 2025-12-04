@@ -181,7 +181,7 @@ class LLMGenerator:
         # Additional cleaning for code
         output = self._clean_generated_code(output)
         
-        return output.repalce("\t", "    ")
+        return output.replace("\t", "    ")
     
     def get_log_probs(self, prompt: str, output: str) -> torch.Tensor:
         """Get log probabilities for RL training.
