@@ -89,7 +89,7 @@ class LLMGenerator:
     def generate_stage_output(
         self,
         problem: str,
-        previous_stages: List[str],
+        previous_stages: list[str],
         stage_id: int,
         prompt_template: str,
         max_new_tokens: int = 512,
