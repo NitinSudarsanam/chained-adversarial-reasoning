@@ -3,6 +3,7 @@
 import torch
 import re
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from peft import prepare_model_for_kbit_training, LoraConfig, get_peft_model
 
 
 class LLMDiscriminator:
@@ -28,12 +29,39 @@ class LLMDiscriminator:
             bnb_4bit_use_double_quant=True,
         )
 
-        self.model = AutoModelForCausalLM.from_pretrained(
+        model = AutoModelForCausalLM.from_pretrained(
             model_name,
-            torch_dtype=torch.float32,
             device_map=device,
             quantization_config=quant_config
         )
+        
+
+        peft_config = LoraConfig(
+            r=16,
+            lora_alpha=32,
+            lora_dropout=0.05,
+            bias="none",
+            task_type="CAUSAL_LM",
+            target_modules=[
+                "q_proj",
+                "k_proj",
+                "v_proj",
+                "o_proj",
+                "gate_proj",
+                "up_proj",
+                "down_proj",
+            ],
+        )
+
+        base_model = prepare_model_for_kbit_training(model)
+        self.model = get_peft_model(base_model, peft_config)
+
+        for name, param in self.model.named_parameters():
+            if "lora_" in name:
+                param.requires_grad = True
+            else:
+                param.requires_grad = False
+
         self.model.eval()
         
         # Set pad token if not set
@@ -43,14 +71,21 @@ class LLMDiscriminator:
     def train(self):
         """Set model to training mode."""
         self.model.train()
+        for name, param in self.model.named_parameters():
+            if "lora_" in name:
+                param.requires_grad = True
     
     def eval(self):
         """Set model to evaluation mode."""
+        for name, param in self.model.named_parameters():
+            if "lora_" in name:
+                param.requires_grad = False
         self.model.eval()
     
     def parameters(self):
         """Return model parameters for optimizer."""
-        return self.model.parameters()
+        # return self.model.parameters()
+        return [param for name, param in self.model.named_parameters() if "lora_" in name]
     
     def generate_tests(
         self,
