@@ -146,23 +146,42 @@ import pytest
         id=5,
         name="Executable Code",
         description="Final Python implementation",
-        generator_prompt_template="""You are a Python coding assistant. Write a complete, working Python function.
+        generator_prompt_template="""
+  You are an expert in Python programming, and specifically solving LeetCode-style questions.
+  Your task is to create a Python function to solve the problem below. Your solution will be tested against a suite of test cases, and it is imperative that you right runnable code.
 
-IMPORTANT: 
-- Keep the EXACT function signature provided
-- Write actual working code, not comments or placeholders
-- Return the result
-
-Function to implement:
-{function_signature}
-
-Problem description:
 {problem}
 
-Write the complete function below (with actual code, not 'pass'):
+FUNCTION SIGNATURE: {function_signature}
 
-```python
-""",
+IMPORTANT:
+- You must use the EXACT function signature provided. Otherwise, your code will fail to execute!
+- Write a complete, working function that matches the problem specification.
+- Return the result that the function computed at the end
+- Output A SINGLE Python function, and only the Python function. Do not output any other code. You will be heavily penalized for writing multiple blocks of code.
+- If you cannot find the solution, still attempt to solve the problem. You will still receive a reward for passing some test cases.
+
+
+"""
+        
+#         """You are a Python coding assistant. Write a complete, working Python function.
+
+# IMPORTANT: 
+# - Keep the EXACT function signature provided
+# - Write actual working code, not comments or placeholders
+# - Return the result
+
+# Function to implement:
+# {function_signature}
+
+# Problem description:
+# {problem}
+
+# Write the complete function below (with actual code, not 'pass'):
+
+# ```python
+# """
+,
         discriminator_prompt_template="""You are generating test cases for a coding problem and solution.
 
 Problem: {problem}
