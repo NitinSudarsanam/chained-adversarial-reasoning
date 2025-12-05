@@ -43,6 +43,17 @@ class UnifiedTrainer:
         # Training state
         self.current_stage = 1
         self.metrics_history = []
+        
+        # Caches for efficiency
+        self._generation_cache = {}
+        self._test_cache = {}
+    
+    def clear_caches(self):
+        """Clear generation and test caches to free memory."""
+        self._generation_cache.clear()
+        self._test_cache.clear()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
     
     def train_stage(
         self,
@@ -77,6 +88,10 @@ class UnifiedTrainer:
         for step in tqdm(range(n_steps), desc=f"Stage {stage_id}"):
             problem = problems[step % len(problems)]
             
+            # Clear CUDA cache periodically (not every step)
+            if step > 0 and step % 10 == 0 and torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            
             # Alternate between discriminator and generator training
             if step % 2 == 0:
                 # Train as discriminator
@@ -110,6 +125,10 @@ class UnifiedTrainer:
         if num_skipped > 0:
             print(f"\n  Warning: Skipped {num_skipped}/{n_steps} steps due to empty generation")
         
+        # Clear caches after each stage to free memory
+        print(f"  Clearing caches (saved {len(self._generation_cache)} generations, {len(self._test_cache)} tests)")
+        self.clear_caches()
+        
         stage_metrics = {
             'stage_id': stage_id,
             'stage_name': get_stage(stage_id).name,
@@ -135,8 +154,8 @@ class UnifiedTrainer:
     
     def _train_discriminator_step(self, problem: Problem, stage_id: int) -> Dict:
         """Single discriminator training step."""
-        # Generate full chain
-        reasoning_chain, final_code, accumulated_tests = self._generate_full_chain(problem, stage_id)
+        # Generate only up to target stage (not all 5!)
+        reasoning_chain, final_code, accumulated_tests = self._generate_up_to_stage(problem, stage_id)
         
         if not final_code or not final_code.strip() or not accumulated_tests or not accumulated_tests.strip():
             return None
@@ -150,6 +169,9 @@ class UnifiedTrainer:
             stage_output=stage_output,
             num_tests=self.config.num_tests_per_problem
         )
+        
+        # Switch to discriminator mode
+        self.model.set_discriminator_mode()
         
         self.model.eval()
         with torch.no_grad():
@@ -165,6 +187,7 @@ class UnifiedTrainer:
         if not stage_tests or not stage_tests.strip():
             return None
         
+        # Get log probs with discriminator adapter active
         old_log_probs = self.model.get_log_probs(prompt, stage_tests)
         
         # Execute and validate tests
@@ -191,11 +214,14 @@ class UnifiedTrainer:
     
     def _train_generator_step(self, problem: Problem, stage_id: int) -> Dict:
         """Single generator training step."""
-        # Generate full chain
-        reasoning_chain, final_code, accumulated_tests = self._generate_full_chain(problem, stage_id)
+        # Generate only up to target stage (not all 5!)
+        reasoning_chain, final_code, accumulated_tests = self._generate_up_to_stage(problem, stage_id)
         
         if not final_code or not final_code.strip() or not accumulated_tests or not accumulated_tests.strip():
             return None
+        
+        # Switch to generator mode
+        self.model.set_generator_mode()
         
         # Get log probs for this stage
         stage = get_stage(stage_id)
@@ -210,6 +236,7 @@ class UnifiedTrainer:
             previous_stages=previous_text if stage_id > 1 else "None"
         )
         
+        # Get log probs with generator adapter active
         old_log_probs = self.model.get_log_probs(prompt, stage_output)
         
         # Execute tests
@@ -232,14 +259,23 @@ class UnifiedTrainer:
         metrics['reward'] = reward
         return metrics
     
-    def _generate_full_chain(self, problem: Problem, training_stage: int) -> tuple:
-        """Generate full reasoning chain and tests."""
+    def _generate_up_to_stage(self, problem: Problem, target_stage: int) -> tuple:
+        """Generate reasoning chain up to target stage only (not all 5).
+        
+        This is much more efficient than generating all 5 stages when we only need
+        stages 1-N for training stage N.
+        """
+        # Check cache first
+        cache_key = (problem.id, target_stage)
+        if hasattr(self, '_generation_cache') and cache_key in self._generation_cache:
+            return self._generation_cache[cache_key]
+        
         reasoning_chain = []
         accumulated_tests = []
         
         self.model.eval()
         with torch.no_grad():
-            for stage_id in range(1, 6):
+            for stage_id in range(1, target_stage + 1):
                 stage = get_stage(stage_id)
                 
                 # Generate reasoning/code
@@ -272,15 +308,8 @@ class UnifiedTrainer:
                 
                 reasoning_chain.append(output)
                 
-                # Generate tests
-                tests = self.model.generate_tests(
-                    problem=problem.description,
-                    generator_code=output,
-                    num_tests=self.config.num_tests_per_problem,
-                    prompt_template=stage.discriminator_prompt_template,
-                    max_new_tokens=self.config.max_new_tokens,
-                    temperature=self.config.temperature
-                )
+                # Generate tests (with caching)
+                tests = self._generate_tests_cached(problem, output, stage_id, stage)
                 
                 if tests and tests.strip():
                     accumulated_tests.append(tests)
@@ -290,7 +319,42 @@ class UnifiedTrainer:
         final_code = reasoning_chain[-1] if reasoning_chain else ""
         all_tests = "\n\n".join(accumulated_tests)
         
-        return reasoning_chain, final_code, all_tests
+        result = (reasoning_chain, final_code, all_tests)
+        
+        # Cache result
+        if not hasattr(self, '_generation_cache'):
+            self._generation_cache = {}
+        self._generation_cache[cache_key] = result
+        
+        return result
+    
+    def _generate_tests_cached(self, problem: Problem, output: str, stage_id: int, stage) -> str:
+        """Generate tests with caching to avoid redundant generation."""
+        # Create cache key from problem, output, and stage
+        import hashlib
+        output_hash = hashlib.md5(output.encode()).hexdigest()[:8]
+        cache_key = (problem.id, stage_id, output_hash)
+        
+        if not hasattr(self, '_test_cache'):
+            self._test_cache = {}
+        
+        if cache_key in self._test_cache:
+            return self._test_cache[cache_key]
+        
+        # Generate tests
+        tests = self.model.generate_tests(
+            problem=problem.description,
+            generator_code=output,
+            num_tests=self.config.num_tests_per_problem,
+            prompt_template=stage.discriminator_prompt_template,
+            max_new_tokens=self.config.max_new_tokens,
+            temperature=self.config.temperature
+        )
+        
+        # Cache for reuse
+        self._test_cache[cache_key] = tests
+        
+        return tests
     
     def train_full_pipeline(self, problems: List[Problem]) -> Dict[str, Any]:
         """Train all stages sequentially."""

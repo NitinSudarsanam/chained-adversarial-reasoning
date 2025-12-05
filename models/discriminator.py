@@ -202,21 +202,24 @@ import pytest
         outputs = self.model(**inputs)
         logits = outputs.logits
         
-        # Delete inputs to free memory immediately
-        del inputs
-        
         # Get log probs for generated tokens only
         prompt_len = prompt_inputs.input_ids.shape[1]
+        input_len = inputs.input_ids.shape[1]
         
         # Handle edge case where output is too short
-        if inputs.input_ids.shape[1] <= prompt_len:
+        if input_len <= prompt_len:
+            del inputs, logits, prompt_inputs
             return torch.tensor([0.0], device=self.device, requires_grad=True)
         
         generated_logits = logits[0, prompt_len-1:-1, :]
         generated_tokens = inputs.input_ids[0, prompt_len:]
         
+        # Delete inputs now that we've extracted what we need
+        del inputs
+        
         # Handle empty generation
         if generated_tokens.shape[0] == 0:
+            del logits, generated_logits, generated_tokens, prompt_inputs
             return torch.tensor([0.0], device=self.device, requires_grad=True)
         
         # Compute log probabilities

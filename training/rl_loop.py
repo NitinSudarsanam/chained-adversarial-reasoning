@@ -125,10 +125,6 @@ def train_step(
     
     model.eval()
     
-    # Clear CUDA cache to prevent OOM
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-    
     return {
         'policy_loss': total_loss.item()
     }

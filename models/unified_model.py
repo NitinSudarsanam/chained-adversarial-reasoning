@@ -3,30 +3,122 @@
 import torch
 import re
 from typing import List
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from peft import (
+    prepare_model_for_kbit_training,
+    LoraConfig,
+    get_peft_model,
+    TaskType
+)
 
 
 class UnifiedModel:
     """Single model that can act as both generator and discriminator."""
     
-    def __init__(self, model_name: str, device: str = "cpu"):
+    def __init__(self, model_name: str, device: str = "cpu", use_lora: bool = True):
         """Initialize unified model from HuggingFace model.
         
         Args:
             model_name: HuggingFace model identifier
             device: Device to run on ('cpu' or 'cuda')
+            use_lora: Whether to use LoRA (recommended for efficiency)
         """
         self.model_name = model_name
         self.device = device
+        self.use_lora = use_lora
+        self.current_adapter = "generator"  # Track which adapter is active
         
         print(f"Loading unified model: {model_name}")
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        # Always use float32 for numerical stability
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            torch_dtype=torch.float32,
-            device_map=device
-        )
+        
+        if use_lora:
+            print("  Using LoRA with 4-bit quantization for efficiency...")
+            
+            # 4-bit quantization config
+            quant_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.bfloat16,
+                bnb_4bit_use_double_quant=True,
+            )
+            
+            # Load base model with quantization
+            base_model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                quantization_config=quant_config,
+                device_map=device,
+                trust_remote_code=True
+            )
+            
+            # Prepare for k-bit training
+            base_model = prepare_model_for_kbit_training(base_model)
+            
+            # LoRA config for generator
+            generator_config = LoraConfig(
+                r=16,
+                lora_alpha=32,
+                target_modules=[
+                    "q_proj",
+                    "k_proj",
+                    "v_proj",
+                    "o_proj",
+                    "gate_proj",
+                    "up_proj",
+                    "down_proj",
+                ],
+                lora_dropout=0.05,
+                bias="none",
+                task_type=TaskType.CAUSAL_LM,
+            )
+            
+            # Add generator adapter
+            self.model = get_peft_model(base_model, generator_config, adapter_name="generator")
+            
+            # LoRA config for discriminator (same settings)
+            discriminator_config = LoraConfig(
+                r=16,
+                lora_alpha=32,
+                target_modules=[
+                    "q_proj",
+                    "k_proj",
+                    "v_proj",
+                    "o_proj",
+                    "gate_proj",
+                    "up_proj",
+                    "down_proj",
+                ],
+                lora_dropout=0.05,
+                bias="none",
+                task_type=TaskType.CAUSAL_LM,
+            )
+            
+            # Add discriminator adapter
+            self.model.add_adapter("discriminator", discriminator_config)
+            
+            # Set default adapter
+            self.model.set_adapter("generator")
+            
+            # Print stats
+            trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+            total_params = sum(p.numel() for p in self.model.parameters())
+            print(f"  ✓ LoRA enabled with dual adapters (generator + discriminator)")
+            print(f"  ✓ Trainable params: {trainable_params:,} / {total_params:,} ({100 * trainable_params / total_params:.2f}%)")
+            print(f"  ✓ Memory savings: ~93% compared to full fine-tuning")
+            
+        else:
+            print("  Using full model (no LoRA)...")
+            # Full model without LoRA
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                torch_dtype=torch.float32,
+                device_map=device
+            )
+            
+            # Enable gradient checkpointing to save memory
+            if hasattr(self.model, 'gradient_checkpointing_enable'):
+                self.model.gradient_checkpointing_enable()
+                print("  ✓ Gradient checkpointing enabled (saves ~30% memory)")
+        
         self.model.eval()
         
         # Set pad token if not set
@@ -44,6 +136,18 @@ class UnifiedModel:
     def parameters(self):
         """Return model parameters for optimizer."""
         return self.model.parameters()
+    
+    def set_generator_mode(self):
+        """Switch to generator adapter (for solving problems)."""
+        if self.use_lora and self.current_adapter != "generator":
+            self.model.set_adapter("generator")
+            self.current_adapter = "generator"
+    
+    def set_discriminator_mode(self):
+        """Switch to discriminator adapter (for generating tests)."""
+        if self.use_lora and self.current_adapter != "discriminator":
+            self.model.set_adapter("discriminator")
+            self.current_adapter = "discriminator"
     
     # Generator methods
     def generate_stage_output(
@@ -72,6 +176,8 @@ class UnifiedModel:
         Returns:
             Generated output for this stage
         """
+        # Switch to generator adapter
+        self.set_generator_mode()
         # Format previous stages
         previous_text = "\n\n".join([
             f"Stage {i+1}:\n{stage}" 
@@ -123,6 +229,8 @@ class UnifiedModel:
         Returns:
             Generated Python code
         """
+        # Switch to generator adapter
+        self.set_generator_mode()
         output = self.generate_stage_output(
             problem=problem,
             previous_stages=reasoning_chain,
@@ -170,6 +278,8 @@ class UnifiedModel:
         Returns:
             Generated test cases as pytest functions
         """
+        # Switch to discriminator adapter
+        self.set_discriminator_mode()
         if prompt_template is None:
             prompt_template = """You are generating test cases for a coding problem and solution.
 
@@ -224,35 +334,32 @@ import pytest
         outputs = self.model(**inputs)
         logits = outputs.logits
         
-        # Delete inputs to free memory immediately
-        del inputs
-        
         # Get log probs for generated tokens only
         prompt_len = prompt_inputs.input_ids.shape[1]
+        input_len = inputs.input_ids.shape[1]
         
         # Handle edge case where output is too short
-        if outputs.logits.shape[1] <= prompt_len:
-            del logits, prompt_inputs
+        if input_len <= prompt_len:
+            del inputs, logits, prompt_inputs
             return torch.tensor([0.0], device=self.device, requires_grad=True)
         
         generated_logits = logits[0, prompt_len-1:-1, :]
-        generated_tokens = outputs.logits.shape[1] - prompt_len
+        generated_token_ids = inputs.input_ids[0, prompt_len:]
+        
+        # Delete inputs now that we've extracted what we need
+        del inputs
         
         # Handle empty generation
-        if generated_tokens == 0:
-            del logits, prompt_inputs
+        if generated_token_ids.shape[0] == 0:
+            del logits, generated_logits, generated_token_ids, prompt_inputs
             return torch.tensor([0.0], device=self.device, requires_grad=True)
-        
-        # Get actual token IDs
-        full_token_ids = self.tokenizer(full_text, return_tensors="pt", truncation=True, max_length=1024).to(self.device).input_ids
-        generated_token_ids = full_token_ids[0, prompt_len:]
         
         # Compute log probabilities
         log_probs = torch.nn.functional.log_softmax(generated_logits, dim=-1)
         token_log_probs = log_probs.gather(1, generated_token_ids.unsqueeze(1)).squeeze(1)
         
         # Clean up intermediate tensors
-        del logits, generated_logits, generated_token_ids, log_probs, prompt_inputs, full_token_ids
+        del logits, generated_logits, generated_token_ids, log_probs, prompt_inputs
         
         return token_log_probs
     

@@ -38,6 +38,11 @@ def main():
         help="Device (cuda or cpu)"
     )
     parser.add_argument(
+        '--no-lora',
+        action='store_true',
+        help="Disable LoRA (use full model fine-tuning, requires more memory)"
+    )
+    parser.add_argument(
         '--problems',
         type=str,
         default="data/function_problems.json",
@@ -94,7 +99,12 @@ def main():
     
     # Initialize unified model
     print("Initializing unified model...")
-    model = UnifiedModel(args.model, device=args.device)
+    use_lora = not args.no_lora
+    if use_lora:
+        print("  Using LoRA for efficient training (93% less memory)")
+    else:
+        print("  Using full model fine-tuning (requires more memory)")
+    model = UnifiedModel(args.model, device=args.device, use_lora=use_lora)
     print()
     
     # Initialize sandbox

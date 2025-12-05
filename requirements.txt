@@ -2,6 +2,8 @@
 torch>=2.0.0
 transformers>=4.30.0
 accelerate>=0.20.0
+peft>=0.7.0  # For LoRA efficient fine-tuning
+bitsandbytes>=0.41.0  # For 4-bit quantization
 
 # Testing
 pytest>=7.0.0
