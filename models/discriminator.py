@@ -358,6 +358,8 @@ import pytest
         code = re.sub(r'=\s{2,}', '= ', code)
 
         code = re.sub(r'\s{1,}.', '.', code)
+        code = re.sub(r'[\s{1,}.', '[', code)
+        code = re.sub(r'\s{1,}]', ']', code)
         
         # Fix: "assert x==y" -> "assert x == y"
         code = re.sub(r'assert\s+(\w+)==(\w+)', r'assert \1 == \2', code)
