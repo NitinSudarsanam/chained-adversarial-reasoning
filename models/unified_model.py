@@ -327,8 +327,8 @@ import pytest
         
         # Tokenize with shorter max length to save memory
         full_text = prompt + output
-        inputs = self.tokenizer(full_text, return_tensors="pt", truncation=True, max_length=1024).to(self.device)
-        prompt_inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=1024).to(self.device)
+        inputs = self.tokenizer(full_text, return_tensors="pt", truncation=True, max_length=4096).to(self.device)
+        prompt_inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=4096).to(self.device)
         
         # Get model outputs (WITH gradients for training)
         outputs = self.model(**inputs)
@@ -385,7 +385,7 @@ import pytest
         was_training = self.model.training
         self.model.eval()
         
-        inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=1024).to(self.device)
+        inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=4096).to(self.device)
         
         # Clamp temperature to safe range
         temperature = max(0.1, min(2.0, temperature))

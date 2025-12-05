@@ -194,10 +194,10 @@ import pytest
         if not output or not output.strip():
             return torch.tensor([0.0], device=self.device, requires_grad=True)
         
-        # Tokenize with shorter max length to save memory
+        # Tokenize with reasonable max length
         full_text = prompt + output
-        inputs = self.tokenizer(full_text, return_tensors="pt", truncation=True, max_length=1024).to(self.device)
-        prompt_inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=1024).to(self.device)
+        inputs = self.tokenizer(full_text, return_tensors="pt", truncation=True, max_length=4096).to(self.device)
+        prompt_inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=4096).to(self.device)
         
         # Get model outputs (WITH gradients for training)
         outputs = self.model(**inputs)
@@ -268,7 +268,7 @@ import pytest
         else:
             formatted_prompt = prompt
         
-        inputs = self.tokenizer(formatted_prompt, return_tensors="pt", truncation=True, max_length=1024).to(self.device)
+        inputs = self.tokenizer(formatted_prompt, return_tensors="pt", truncation=True, max_length=4096).to(self.device)
         
         # Clamp temperature to safe range to avoid numerical issues
         temperature = max(0.1, min(2.0, temperature))
@@ -368,6 +368,13 @@ import pytest
         
         # Fix: "max(x,y" -> "max(x, y" (add space after comma)
         code = re.sub(r',(\w)', r', \1', code)
+        
+        # Fix: "function-name" -> "function_name" (hyphens to underscores in identifiers)
+        # Fix when it's a function call (followed by parenthesis)
+        code = re.sub(r'(\w+)-(\w+)\s*\(', r'\1_\2(', code)
+        # Also fix multi-word function names like "two-sum-array"
+        while re.search(r'(\w+)-(\w+)', code):
+            code = re.sub(r'(\w+)-(\w+)', r'\1_\2', code)
         
         return code
     

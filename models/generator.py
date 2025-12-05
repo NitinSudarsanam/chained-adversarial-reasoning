@@ -198,10 +198,10 @@ class LLMGenerator:
         if not output or not output.strip():
             return torch.tensor([0.0], device=self.device, requires_grad=True)
         
-        # Tokenize with shorter max length to save memory
+        # Tokenize with reasonable max length
         full_text = prompt + output
-        inputs = self.tokenizer(full_text, return_tensors="pt", truncation=True, max_length=1024).to(self.device)
-        prompt_inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=1024).to(self.device)
+        inputs = self.tokenizer(full_text, return_tensors="pt", truncation=True, max_length=4096).to(self.device)
+        prompt_inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=4096).to(self.device)
         
         # Get model outputs (WITH gradients for training)
         outputs = self.model(**inputs)
@@ -261,7 +261,7 @@ class LLMGenerator:
         # Format prompt using chat template for instruction-tuned models
         if hasattr(self.tokenizer, 'apply_chat_template') and self.tokenizer.chat_template:
             messages = [
-                {"role": "system", "content": "You are a Python code generator. Output ONLY valid Python code with no explanations."},
+                {"role": "system", "content": "You are a Python programmer. Write complete, working Python functions. Do NOT leave placeholder comments. Do NOT write explanations. Output ONLY the function code."},
                 {"role": "user", "content": prompt}
             ]
             formatted_prompt = self.tokenizer.apply_chat_template(
@@ -272,7 +272,7 @@ class LLMGenerator:
         else:
             formatted_prompt = prompt
         
-        inputs = self.tokenizer(formatted_prompt, return_tensors="pt", truncation=True, max_length=1024).to(self.device)
+        inputs = self.tokenizer(formatted_prompt, return_tensors="pt", truncation=True, max_length=4096).to(self.device)
         
         # Clamp temperature to safe range to avoid numerical issues
         temperature = max(0.1, min(2.0, temperature))
@@ -453,6 +453,18 @@ class LLMGenerator:
         # If we found a function/class, remove everything before it
         if first_def_idx > 0:
             lines = lines[first_def_idx:]
+        
+        # Remove incomplete placeholder comments like "# Your code here"
+        cleaned_lines = []
+        for line in lines:
+            stripped = line.strip()
+            # Skip placeholder comments
+            if stripped in ['# Your code here', '# TODO', '# Your code hereassistant', 
+                           '# Add your code here', '# Implement here', '# Write code here']:
+                continue
+            cleaned_lines.append(line)
+        
+        lines = cleaned_lines
         
         # Rejoin lines
         code = '\n'.join(lines)

@@ -189,24 +189,24 @@ import pytest
         id=5,
         name="Executable Code",
         description="Final Python implementation",
-        generator_prompt_template="""You are a Python code generator. Generate ONLY executable Python code.
+        generator_prompt_template="""Write a complete Python function to solve this problem.
 
 Problem: {problem}
 
-Function Signature: {function_signature}
+Function signature: {function_signature}
 
-STRICT RULES:
-- Output ONLY the function code
-- NO explanations, NO comments, NO text before or after
-- Start directly with "def"
-- Use the EXACT function signature
-- Write syntactically valid Python
+Requirements:
+- Write the COMPLETE function implementation
+- Use the exact function signature above
+- Include all necessary logic
 - Return the result
+- Do NOT leave placeholder comments like "# Your code here"
+- Do NOT write explanations
 
 Previous reasoning:
 {previous_stages}
 
-CODE (no explanations):
+Complete function:
 ```python
 """
         

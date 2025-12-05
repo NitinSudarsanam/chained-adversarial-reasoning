@@ -204,9 +204,15 @@ class AdversarialTrainer:
             print(f"    Timeout: {gen_result.timed_out}")
             print(f"    Errors: {len(gen_result.errors)} error(s)")
             if gen_result.errors:
-                print(f"    First error: {gen_result.errors[0][:150]}")
+                # Show first 3 errors to get past warnings
+                for i, error in enumerate(gen_result.errors[:3]):
+                    print(f"    Error {i+1}: {error[:200]}")
             if gen_result.stderr:
-                print(f"    Stderr: {gen_result.stderr[:150]}")
+                # Show last part of stderr which usually has the actual error
+                stderr_lines = gen_result.stderr.split('\n')
+                relevant_lines = [l for l in stderr_lines if 'Error' in l or 'FAILED' in l or 'SyntaxError' in l]
+                if relevant_lines:
+                    print(f"    Key errors: {relevant_lines[:3]}")
             
             # Train step
             metrics = train_step(
@@ -346,9 +352,15 @@ class AdversarialTrainer:
             print(f"    Timeout: {result.timed_out}")
             print(f"    Errors: {len(result.errors)} error(s)")
             if result.errors:
-                print(f"    First error: {result.errors[0][:150]}")
+                # Show first 3 errors to get past warnings
+                for i, error in enumerate(result.errors[:3]):
+                    print(f"    Error {i+1}: {error[:200]}")
             if result.stderr:
-                print(f"    Stderr: {result.stderr[:150]}")
+                # Show last part of stderr which usually has the actual error
+                stderr_lines = result.stderr.split('\n')
+                relevant_lines = [l for l in stderr_lines if 'Error' in l or 'FAILED' in l or 'SyntaxError' in l]
+                if relevant_lines:
+                    print(f"    Key errors: {relevant_lines[:3]}")
             
             # Train step
             metrics = train_step(
