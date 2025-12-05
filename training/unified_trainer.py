@@ -338,8 +338,14 @@ class UnifiedTrainer:
         
         reward = compute_discriminator_reward(gen_result, val_result)
         
-        # Log reward
+        # Calculate pass percentages
+        gen_pass_pct = (gen_result.num_passed / gen_result.num_total * 100) if gen_result.num_total > 0 else 0.0
+        val_pass_pct = (val_result.num_passed / val_result.num_total * 100) if val_result.num_total > 0 else 0.0
+        
+        # Log reward with percentages
         print(f"    Discriminator Reward: {reward:.4f}")
+        print(f"      Gen Pass: {gen_result.num_passed}/{gen_result.num_total} ({gen_pass_pct:.1f}%)")
+        print(f"      Val Pass: {val_result.num_passed}/{val_result.num_total} ({val_pass_pct:.1f}%)")
         
         # Train
         train_start = time.time()
@@ -411,8 +417,12 @@ class UnifiedTrainer:
         result = self.sandbox.execute_tests(final_code, accumulated_tests)
         reward = compute_generator_reward(result)
         
-        # Log reward
+        # Calculate pass percentage
+        pass_pct = (result.num_passed / result.num_total * 100) if result.num_total > 0 else 0.0
+        
+        # Log reward with percentage
         print(f"    Generator Reward: {reward:.4f}")
+        print(f"      Test Pass: {result.num_passed}/{result.num_total} ({pass_pct:.1f}%)")
         
         # Train
         self.model.train()
@@ -431,10 +441,14 @@ class UnifiedTrainer:
         return metrics
     
     def _generate_up_to_stage(self, problem: Problem, target_stage: int) -> tuple:
-        """Generate reasoning chain up to target stage only (not all 5).
+        """Generate full reasoning chain (all 5 stages) for a problem.
         
-        This is much more efficient than generating all 5 stages when we only need
-        stages 1-N for training stage N.
+        NOTE: We MUST generate all 5 stages because:
+        - Tests are executed against final_code (stage 5)
+        - We need executable code to validate tests
+        - Even when training stage 1, we need stage 5 code for execution
+        
+        OPTIMIZATION: Cache results to avoid regenerating for same problem+stage
         """
         # Check cache first - AGGRESSIVE CACHING
         cache_key = (problem.id, target_stage)
@@ -448,7 +462,8 @@ class UnifiedTrainer:
         
         self.model.eval()
         with torch.no_grad():
-            for stage_id in range(1, target_stage + 1):
+            # Generate all 5 stages (needed for final executable code)
+            for stage_id in range(1, 6):
                 stage = get_stage(stage_id)
                 
                 # Generate reasoning/code

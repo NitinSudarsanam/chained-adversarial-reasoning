@@ -27,16 +27,35 @@ Problem: {problem}
 Provide your informal reasoning - explain what the problem is asking, what approach you might take, and any initial thoughts. Be conversational and intuitive.
 
 Informal Reasoning:""",
-        discriminator_prompt_template="""You are generating basic test cases based on informal reasoning for a coding problem.
+        discriminator_prompt_template="""You are generating test cases for a coding problem.
 
 Problem: {problem}
 
 Informal Reasoning:
 {stage_output}
 
-Generate 2-3 basic test cases as pytest functions that check if the core idea works. Focus on: happy path, empty input, single element cases.
+Generate {num_tests} basic test cases as pytest functions. Focus on: happy path, empty input, single element.
 
-Test Cases:
+CRITICAL REQUIREMENTS:
+1. Write ONLY pytest test functions - no explanations
+2. Each test must start with "def test_"
+3. Use assert statements to check correctness
+4. Tests must be syntactically valid Python
+5. Import any needed modules at the top
+
+Example format:
+```python
+import pytest
+
+def test_basic():
+    assert function_name(input) == expected_output
+
+def test_empty():
+    assert function_name([]) == expected_empty_result
+```
+
+Write your test functions below:
+
 ```python
 import pytest
 
@@ -61,16 +80,24 @@ Provide structured reasoning with:
 4. Edge cases to consider
 
 Structured Reasoning:""",
-        discriminator_prompt_template="""You are generating edge case test cases based on structured reasoning for a coding problem.
+        discriminator_prompt_template="""You are generating edge case test cases for a coding problem.
 
 Problem: {problem}
 
 Structured Reasoning:
 {stage_output}
 
-Generate 2-3 test cases as pytest functions for edge cases mentioned in the structure. Focus on: boundary conditions, edge cases identified in the reasoning.
+Generate {num_tests} edge case test cases as pytest functions. Focus on: boundary conditions, edge cases.
 
-Test Cases:
+CRITICAL REQUIREMENTS:
+1. Write ONLY pytest test functions - no explanations
+2. Each test must start with "def test_"
+3. Use assert statements to check correctness
+4. Tests must be syntactically valid Python
+5. Test edge cases and boundaries
+
+Write your test functions below:
+
 ```python
 import pytest
 
@@ -91,16 +118,24 @@ Previous Reasoning:
 Write clear pseudocode for the solution. Use indentation and clear variable names.
 
 Pseudocode:""",
-        discriminator_prompt_template="""You are generating algorithmic test cases based on pseudocode for a coding problem.
+        discriminator_prompt_template="""You are generating algorithmic test cases for a coding problem.
 
 Problem: {problem}
 
 Pseudocode:
 {stage_output}
 
-Generate 2-3 test cases as pytest functions that could break this algorithm. Focus on: loop boundaries, off-by-one errors, algorithmic corner cases.
+Generate {num_tests} test cases as pytest functions that test algorithmic correctness. Focus on: loop boundaries, off-by-one errors, corner cases.
 
-Test Cases:
+CRITICAL REQUIREMENTS:
+1. Write ONLY pytest test functions - no explanations
+2. Each test must start with "def test_"
+3. Use assert statements to check correctness
+4. Tests must be syntactically valid Python
+5. Try to find algorithmic bugs
+
+Write your test functions below:
+
 ```python
 import pytest
 
@@ -126,16 +161,24 @@ List:
 5. Time/space complexity
 
 Constraints and Invariants:""",
-        discriminator_prompt_template="""You are generating constraint-testing test cases based on stated constraints for a coding problem.
+        discriminator_prompt_template="""You are generating constraint-testing test cases for a coding problem.
 
 Problem: {problem}
 
 Constraints and Invariants:
 {stage_output}
 
-Generate 2-3 test cases as pytest functions that verify the stated constraints are met. Focus on: constraint violations, complexity stress tests, stated assumptions.
+Generate {num_tests} test cases as pytest functions that verify constraints. Focus on: constraint violations, stress tests.
 
-Test Cases:
+CRITICAL REQUIREMENTS:
+1. Write ONLY pytest test functions - no explanations
+2. Each test must start with "def test_"
+3. Use assert statements to check correctness
+4. Tests must be syntactically valid Python
+5. Test constraint boundaries
+
+Write your test functions below:
+
 ```python
 import pytest
 
@@ -146,22 +189,26 @@ import pytest
         id=5,
         name="Executable Code",
         description="Final Python implementation",
-        generator_prompt_template="""
-  You are an expert in Python programming, and specifically solving LeetCode-style questions.
-  Your task is to create a Python function to solve the problem below. Your solution will be tested against a suite of test cases, and it is imperative that you right runnable code.
+        generator_prompt_template="""You are an expert Python programmer solving coding problems.
 
-{problem}
+Problem: {problem}
 
-FUNCTION SIGNATURE: {function_signature}
+Function Signature: {function_signature}
 
-IMPORTANT:
-- You must use the EXACT function signature provided. Otherwise, your code will fail to execute!
-- Write a complete, working function that matches the problem specification.
-- Return the result that the function computed at the end
-- Output A SINGLE Python function, and only the Python function. Do not output any other code. You will be heavily penalized for writing multiple blocks of code.
-- If you cannot find the solution, still attempt to solve the problem. You will still receive a reward for passing some test cases.
+CRITICAL REQUIREMENTS:
+1. Use the EXACT function signature provided above
+2. Write ONLY the function implementation - no explanations, no comments outside the function
+3. The function must be complete and executable
+4. Return the computed result
+5. Do NOT write multiple functions - only ONE function
+6. Do NOT include test code or example usage
 
+Previous reasoning:
+{previous_stages}
 
+Write your Python function below:
+
+```python
 """
         
 #         """You are a Python coding assistant. Write a complete, working Python function.
@@ -182,16 +229,25 @@ IMPORTANT:
 # ```python
 # """
 ,
-        discriminator_prompt_template="""You are generating test cases for a coding problem and solution.
+        discriminator_prompt_template="""You are generating adversarial test cases for a coding problem.
 
 Problem: {problem}
 
 Generated Code:
 {stage_output}
 
-Generate {num_tests} challenging test cases as pytest functions. Make them adversarial - try to break the code.
+Generate {num_tests} challenging test cases as pytest functions. Make them adversarial - try to find bugs.
 
-Test Cases:
+CRITICAL REQUIREMENTS:
+1. Write ONLY pytest test functions - no explanations
+2. Each test must start with "def test_"
+3. Use assert statements to check correctness
+4. Tests must be syntactically valid Python
+5. Be adversarial - try to break the code
+6. Test edge cases, corner cases, and tricky inputs
+
+Write your test functions below:
+
 ```python
 import pytest
 

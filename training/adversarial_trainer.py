@@ -67,6 +67,11 @@ class AdversarialTrainer:
         # Problem sampling state (for random sampling without replacement)
         self.problem_indices = []
         self.problem_index_ptr = 0
+        
+        # Generation cache for efficiency (avoid regenerating same content)
+        self._generation_cache = {}
+        self._cache_hits = 0
+        self._cache_misses = 0
     
     def _sample_problem(self, problems: List[Problem]) -> Problem:
         """Sample problem with random shuffling (without replacement per epoch).
@@ -177,10 +182,31 @@ class AdversarialTrainer:
             reward = compute_discriminator_reward(gen_result, val_result)
             total_reward += reward
             
+            # Calculate pass percentages
+            gen_pass_pct = (gen_result.num_passed / gen_result.num_total * 100) if gen_result.num_total > 0 else 0.0
+            val_pass_pct = (val_result.num_passed / val_result.num_total * 100) if val_result.num_total > 0 else 0.0
+            
             # Log reward for this step with details
-            print(f"  Step {step+1}/{n_steps} - Discriminator Reward: {reward:.4f} "
-                  f"(gen_passed={gen_result.num_passed}/{gen_result.num_total}, "
-                  f"val_passed={val_result.num_passed}/{val_result.num_total})")
+            print(f"\n  Step {step+1}/{n_steps} - Discriminator Reward: {reward:.4f}")
+            print(f"    Generator Pass Rate: {gen_result.num_passed}/{gen_result.num_total} ({gen_pass_pct:.1f}%)")
+            print(f"    Validation Pass Rate: {val_result.num_passed}/{val_result.num_total} ({val_pass_pct:.1f}%)")
+            
+            # Log generated code and tests for debugging
+            print(f"  Generated Code (length={len(final_code)}):")
+            code_preview = final_code[:300].replace('\n', '\n    ')
+            print(f"    {code_preview}{'...' if len(final_code) > 300 else ''}")
+            
+            print(f"  Generated Tests (length={len(accumulated_tests)}):")
+            tests_preview = accumulated_tests[:300].replace('\n', '\n    ')
+            print(f"    {tests_preview}{'...' if len(accumulated_tests) > 300 else ''}")
+            
+            print(f"  Execution Results:")
+            print(f"    Timeout: {gen_result.timed_out}")
+            print(f"    Errors: {len(gen_result.errors)} error(s)")
+            if gen_result.errors:
+                print(f"    First error: {gen_result.errors[0][:150]}")
+            if gen_result.stderr:
+                print(f"    Stderr: {gen_result.stderr[:150]}")
             
             # Train step
             metrics = train_step(
@@ -210,6 +236,12 @@ class AdversarialTrainer:
         print(f"    Updates applied: {num_updates}")
         print(f"    Average reward: {avg_reward:.4f}")
         print(f"    Average loss: {avg_loss:.4f}")
+        
+        # Log cache efficiency
+        total_cache_attempts = self._cache_hits + self._cache_misses
+        if total_cache_attempts > 0:
+            cache_hit_rate = (self._cache_hits / total_cache_attempts) * 100
+            print(f"    Cache: {self._cache_hits} hits, {self._cache_misses} misses ({cache_hit_rate:.1f}% hit rate)")
         
         if num_skipped > 0:
             print(f"  ⚠ Warning: {num_skipped}/{n_steps} steps skipped due to empty generation")
@@ -294,9 +326,29 @@ class AdversarialTrainer:
             reward = compute_generator_reward(result)
             total_reward += reward
             
+            # Calculate pass percentage
+            pass_pct = (result.num_passed / result.num_total * 100) if result.num_total > 0 else 0.0
+            
             # Log reward for this step with details
-            print(f"  Step {step+1}/{n_steps} - Generator Reward: {reward:.4f} "
-                  f"(passed={result.num_passed}/{result.num_total})")
+            print(f"\n  Step {step+1}/{n_steps} - Generator Reward: {reward:.4f}")
+            print(f"    Test Pass Rate: {result.num_passed}/{result.num_total} ({pass_pct:.1f}%)")
+            
+            # Log generated code and tests for debugging
+            print(f"  Generated Code (length={len(final_code)}):")
+            code_preview = final_code[:300].replace('\n', '\n    ')
+            print(f"    {code_preview}{'...' if len(final_code) > 300 else ''}")
+            
+            print(f"  Generated Tests (length={len(accumulated_tests)}):")
+            tests_preview = accumulated_tests[:300].replace('\n', '\n    ')
+            print(f"    {tests_preview}{'...' if len(accumulated_tests) > 300 else ''}")
+            
+            print(f"  Execution Results:")
+            print(f"    Timeout: {result.timed_out}")
+            print(f"    Errors: {len(result.errors)} error(s)")
+            if result.errors:
+                print(f"    First error: {result.errors[0][:150]}")
+            if result.stderr:
+                print(f"    Stderr: {result.stderr[:150]}")
             
             # Train step
             metrics = train_step(
@@ -326,6 +378,12 @@ class AdversarialTrainer:
         print(f"    Updates applied: {num_updates}")
         print(f"    Average reward: {avg_reward:.4f}")
         print(f"    Average loss: {avg_loss:.4f}")
+        
+        # Log cache efficiency
+        total_cache_attempts = self._cache_hits + self._cache_misses
+        if total_cache_attempts > 0:
+            cache_hit_rate = (self._cache_hits / total_cache_attempts) * 100
+            print(f"    Cache: {self._cache_hits} hits, {self._cache_misses} misses ({cache_hit_rate:.1f}% hit rate)")
         
         if num_skipped > 0:
             print(f"  ⚠ Warning: {num_skipped}/{n_steps} steps skipped due to empty generation")
@@ -432,8 +490,12 @@ class AdversarialTrainer:
     ) -> tuple:
         """Generate full reasoning chain (1-5) and accumulate tests from all stages.
         
-        When training stage N, stages 1 to N-1 use frozen weights (no_grad),
-        and stages N to 5 use trainable weights.
+        NOTE: We MUST generate all 5 stages because:
+        - Tests are executed against final_code (stage 5)
+        - We need executable code to validate tests
+        - Even when training stage 1, we need stage 5 code for execution
+        
+        OPTIMIZATION: Cache results to avoid regenerating for same problem+stage
         
         Args:
             problem: Problem to solve
@@ -442,10 +504,18 @@ class AdversarialTrainer:
         Returns:
             Tuple of (reasoning_chain, final_code, accumulated_tests)
         """
+        # OPTIMIZATION: Check cache first
+        cache_key = (problem.id, training_stage)
+        if cache_key in self._generation_cache:
+            self._cache_hits += 1
+            return self._generation_cache[cache_key]
+        
+        self._cache_misses += 1
+        
         reasoning_chain = []
         accumulated_tests = []
         
-        # Generate all 5 stages
+        # Generate all 5 stages (needed for final executable code)
         for stage_id in range(1, 6):
             stage = get_stage(stage_id)
             
@@ -520,8 +590,22 @@ class AdversarialTrainer:
         final_code = reasoning_chain[-1] if reasoning_chain else ""
         all_tests = "\n\n".join(accumulated_tests)
         
-        return reasoning_chain, final_code, all_tests
-
+        # Cache the result for reuse
+        result = (reasoning_chain, final_code, all_tests)
+        self._generation_cache[cache_key] = result
+        
+        return result
+    
+    def clear_cache(self):
+        """Clear generation cache to free memory."""
+        cache_size = len(self._generation_cache)
+        self._generation_cache.clear()
+        self._cache_hits = 0
+        self._cache_misses = 0
+        if cache_size > 0:
+            print(f"  Cleared generation cache ({cache_size} entries)")
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
     
     def train_stage(
         self,
@@ -545,6 +629,9 @@ class AdversarialTrainer:
         print(f"\n{'='*60}")
         print(f"Training Stage {stage_id}: {get_stage(stage_id).name}")
         print(f"{'='*60}\n")
+        
+        # Clear cache at start of each stage to free memory
+        self.clear_cache()
         
         # Phase 1: Train discriminator
         disc_metrics = self.train_discriminator_epoch(
