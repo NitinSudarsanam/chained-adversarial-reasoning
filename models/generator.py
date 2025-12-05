@@ -258,7 +258,21 @@ class LLMGenerator:
         was_training = self.model.training
         self.model.eval()
         
-        inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=1024).to(self.device)
+        # Format prompt using chat template for instruction-tuned models
+        if hasattr(self.tokenizer, 'apply_chat_template') and self.tokenizer.chat_template:
+            messages = [
+                {"role": "system", "content": "You are a Python code generator. Output ONLY valid Python code with no explanations."},
+                {"role": "user", "content": prompt}
+            ]
+            formatted_prompt = self.tokenizer.apply_chat_template(
+                messages, 
+                tokenize=False, 
+                add_generation_prompt=True
+            )
+        else:
+            formatted_prompt = prompt
+        
+        inputs = self.tokenizer(formatted_prompt, return_tensors="pt", truncation=True, max_length=1024).to(self.device)
         
         # Clamp temperature to safe range to avoid numerical issues
         temperature = max(0.1, min(2.0, temperature))
