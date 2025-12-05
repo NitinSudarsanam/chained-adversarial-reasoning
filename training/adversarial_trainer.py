@@ -1,6 +1,7 @@
 """Adversarial trainer for multi-stage reasoning system."""
 
 import torch
+import random
 from typing import List, Dict, Any
 from tqdm import tqdm
 
@@ -62,6 +63,30 @@ class AdversarialTrainer:
             'generator': [],
             'discriminator': []
         }
+        
+        # Problem sampling state (for random sampling without replacement)
+        self.problem_indices = []
+        self.problem_index_ptr = 0
+    
+    def _sample_problem(self, problems: List[Problem]) -> Problem:
+        """Sample problem with random shuffling (without replacement per epoch).
+        
+        Args:
+            problems: List of available problems
+            
+        Returns:
+            Sampled problem
+        """
+        if self.problem_index_ptr >= len(problems):
+            # Reshuffle when we've used all problems
+            self.problem_indices = list(range(len(problems)))
+            random.shuffle(self.problem_indices)
+            self.problem_index_ptr = 0
+            print(f"  Shuffled {len(problems)} problems for new epoch")
+        
+        idx = self.problem_indices[self.problem_index_ptr]
+        self.problem_index_ptr += 1
+        return problems[idx]
     
     def train_discriminator_epoch(
         self,
@@ -91,8 +116,8 @@ class AdversarialTrainer:
         num_skipped = 0
         
         for step in tqdm(range(n_steps), desc="Discriminator"):
-            # Sample a problem
-            problem = problems[step % len(problems)]
+            # Sample a problem (random without replacement)
+            problem = self._sample_problem(problems)
             
             # Generate full reasoning chain and accumulate tests from all stages
             reasoning_chain, final_code, accumulated_tests = self._generate_full_chain_with_tests(
@@ -101,12 +126,14 @@ class AdversarialTrainer:
             
             if not final_code or not final_code.strip():
                 num_skipped += 1
-                print(f"  Skipping step {step}: empty code generated")
+                print(f"  ⚠ Skipping discriminator step {step+1}/{n_steps}: empty code generated")
+                print(f"     Reasoning chain length: {len(reasoning_chain)}, Problem: {problem.id}")
                 continue
             
             if not accumulated_tests or not accumulated_tests.strip():
                 num_skipped += 1
-                print(f"  Skipping step {step}: empty tests generated")
+                print(f"  ⚠ Skipping discriminator step {step+1}/{n_steps}: empty tests generated")
+                print(f"     Final code length: {len(final_code)}, Problem: {problem.id}")
                 continue
             
             # Get the tests generated at THIS stage for log probs
@@ -131,7 +158,8 @@ class AdversarialTrainer:
             
             if not stage_tests or not stage_tests.strip():
                 num_skipped += 1
-                print(f"  Skipping step {step}: empty stage tests generated")
+                print(f"  ⚠ Skipping discriminator step {step+1}/{n_steps}: empty stage tests generated")
+                print(f"     Stage output length: {len(stage_output)}, Problem: {problem.id}")
                 continue
             
             old_log_probs = self.discriminator.get_log_probs(prompt, stage_tests)
@@ -148,6 +176,11 @@ class AdversarialTrainer:
             reward = compute_discriminator_reward(gen_result, val_result)
             total_reward += reward
             
+            # Log reward for this step with details
+            print(f"  Step {step+1}/{n_steps} - Discriminator Reward: {reward:.4f} "
+                  f"(gen_passed={gen_result.num_passed}/{gen_result.num_total}, "
+                  f"val_passed={val_result.num_passed}/{val_result.num_total})")
+            
             # Train step
             metrics = train_step(
                 model=self.discriminator,
@@ -163,12 +196,25 @@ class AdversarialTrainer:
                 total_loss += metrics['policy_loss']
                 num_updates += 1
         
-        avg_reward = total_reward / n_steps if n_steps > 0 else 0.0
+        # Calculate average over successful steps only
+        num_successful = n_steps - num_skipped
+        avg_reward = total_reward / num_successful if num_successful > 0 else 0.0
         avg_loss = total_loss / num_updates if num_updates > 0 else 0.0
         
         # Log summary
+        print(f"\n  Discriminator Training Summary:")
+        print(f"    Total steps: {n_steps}")
+        print(f"    Successful steps: {num_successful}")
+        print(f"    Skipped steps: {num_skipped}")
+        print(f"    Updates applied: {num_updates}")
+        print(f"    Average reward: {avg_reward:.4f}")
+        print(f"    Average loss: {avg_loss:.4f}")
+        
         if num_skipped > 0:
-            print(f"\n  Warning: Skipped {num_skipped}/{n_steps} discriminator steps due to empty generation")
+            print(f"  ⚠ Warning: {num_skipped}/{n_steps} steps skipped due to empty generation")
+        
+        if num_successful == 0:
+            print(f"  ❌ ERROR: All steps were skipped! Check model generation.")
         
         return {
             'avg_reward': avg_reward,
@@ -206,8 +252,8 @@ class AdversarialTrainer:
         num_skipped = 0
         
         for step in tqdm(range(n_steps), desc="Generator"):
-            # Sample a problem
-            problem = problems[step % len(problems)]
+            # Sample a problem (random without replacement)
+            problem = self._sample_problem(problems)
             
             # Generate full reasoning chain and accumulate tests from all stages
             reasoning_chain, final_code, accumulated_tests = self._generate_full_chain_with_tests(
@@ -216,12 +262,14 @@ class AdversarialTrainer:
             
             if not final_code or not final_code.strip():
                 num_skipped += 1
-                print(f"  Skipping step {step}: empty code generated")
+                print(f"  ⚠ Skipping generator step {step+1}/{n_steps}: empty code generated")
+                print(f"     Reasoning chain length: {len(reasoning_chain)}, Problem: {problem.id}")
                 continue
             
             if not accumulated_tests or not accumulated_tests.strip():
                 num_skipped += 1
-                print(f"  Skipping step {step}: empty tests generated")
+                print(f"  ⚠ Skipping generator step {step+1}/{n_steps}: empty tests generated")
+                print(f"     Final code length: {len(final_code)}, Problem: {problem.id}")
                 continue
             
             # Get old log probs for THIS stage's generation
@@ -245,6 +293,10 @@ class AdversarialTrainer:
             reward = compute_generator_reward(result)
             total_reward += reward
             
+            # Log reward for this step with details
+            print(f"  Step {step+1}/{n_steps} - Generator Reward: {reward:.4f} "
+                  f"(passed={result.num_passed}/{result.num_total})")
+            
             # Train step
             metrics = train_step(
                 model=self.generator,
@@ -260,12 +312,25 @@ class AdversarialTrainer:
                 total_loss += metrics['policy_loss']
                 num_updates += 1
         
-        avg_reward = total_reward / n_steps if n_steps > 0 else 0.0
+        # Calculate average over successful steps only
+        num_successful = n_steps - num_skipped
+        avg_reward = total_reward / num_successful if num_successful > 0 else 0.0
         avg_loss = total_loss / num_updates if num_updates > 0 else 0.0
         
         # Log summary
+        print(f"\n  Generator Training Summary:")
+        print(f"    Total steps: {n_steps}")
+        print(f"    Successful steps: {num_successful}")
+        print(f"    Skipped steps: {num_skipped}")
+        print(f"    Updates applied: {num_updates}")
+        print(f"    Average reward: {avg_reward:.4f}")
+        print(f"    Average loss: {avg_loss:.4f}")
+        
         if num_skipped > 0:
-            print(f"\n  Warning: Skipped {num_skipped}/{n_steps} generator steps due to empty generation")
+            print(f"  ⚠ Warning: {num_skipped}/{n_steps} steps skipped due to empty generation")
+        
+        if num_successful == 0:
+            print(f"  ❌ ERROR: All steps were skipped! Check model generation.")
         
         return {
             'avg_reward': avg_reward,

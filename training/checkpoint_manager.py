@@ -43,7 +43,7 @@ class CheckpointManager:
         is_best: bool = False
     ) -> str:
         """Save model checkpoint with metadata.
-        
+
         Args:
             generator: Generator model instance
             discriminator: Discriminator model instance
@@ -51,31 +51,51 @@ class CheckpointManager:
             epoch: Current epoch number
             metrics: Training metrics dictionary
             is_best: Whether this is the best checkpoint so far
-            
+
         Returns:
             Path to saved checkpoint file
         """
         timestamp = datetime.now().isoformat()
-        
+
         # Create checkpoint filename
         checkpoint_name = f"checkpoint_stage_{stage}_epoch_{epoch}.pt"
         checkpoint_path = self.checkpoint_dir / checkpoint_name
-        
+
+        # Get state dicts and move to CPU to prevent memory spikes
+        print("Preparing checkpoint data (moving to CPU)...")
+
+        # Check if models use LoRA/PEFT
+        has_peft = hasattr(generator.model, 'peft_config')
+
+        if has_peft:
+            # Save only LoRA adapter weights (much smaller)
+            gen_state = {k: v.cpu().clone() for k, v in generator.model.state_dict().items()
+                        if 'lora_' in k}
+            disc_state = {k: v.cpu().clone() for k, v in discriminator.model.state_dict().items()
+                         if 'lora_' in k}
+            print(f"  Saving LoRA adapters only ({len(gen_state)} gen params, {len(disc_state)} disc params)")
+        else:
+            # Save full model state (fallback for non-LoRA models)
+            gen_state = {k: v.cpu().clone() for k, v in generator.model.state_dict().items()}
+            disc_state = {k: v.cpu().clone() for k, v in discriminator.model.state_dict().items()}
+            print(f"  Saving full model state ({len(gen_state)} gen params, {len(disc_state)} disc params)")
+
         # Prepare checkpoint data
         checkpoint_data = {
             "stage": stage,
             "epoch": epoch,
             "timestamp": timestamp,
-            "generator_state_dict": generator.model.state_dict(),
-            "discriminator_state_dict": discriminator.model.state_dict(),
+            "generator_state_dict": gen_state,
+            "discriminator_state_dict": disc_state,
             "metrics": metrics,
+            "is_lora": has_peft,
             "config": {
                 "generator_model": generator.model_name,
                 "discriminator_model": discriminator.model_name,
                 "device": generator.device
             }
         }
-        
+
         # Save checkpoint
         try:
             torch.save(checkpoint_data, checkpoint_path)
@@ -89,7 +109,11 @@ class CheckpointManager:
             except Exception as e2:
                 print(f"✗ Failed to save checkpoint on retry: {e2}")
                 raise
-        
+
+        # Clean up CPU tensors
+        del gen_state, disc_state, checkpoint_data
+        torch.cuda.empty_cache() if torch.cuda.is_available() else None
+
         # Save metadata separately for easy access
         metadata_path = checkpoint_path.with_suffix('.json')
         metadata = {
@@ -98,16 +122,17 @@ class CheckpointManager:
             "timestamp": timestamp,
             "metrics": metrics,
             "checkpoint_path": str(checkpoint_path),
-            "is_best": is_best
+            "is_best": is_best,
+            "is_lora": has_peft
         }
-        
+
         with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, indent=2)
-        
+
         # Update best checkpoint if needed
         if is_best:
             self._update_best_checkpoint(checkpoint_path, metrics)
-        
+
         return str(checkpoint_path)
     
     def _update_best_checkpoint(self, checkpoint_path: Path, metrics: Dict[str, float]):  # noqa: ARG002
@@ -142,44 +167,61 @@ class CheckpointManager:
         discriminator
     ) -> Dict[str, Any]:
         """Load models from checkpoint and return metadata.
-        
+
         Args:
             checkpoint_path: Path to checkpoint file
             generator: Generator model instance to load weights into
             discriminator: Discriminator model instance to load weights into
-            
+
         Returns:
             Dictionary containing checkpoint metadata
         """
         checkpoint_path = Path(checkpoint_path)
-        
+
         # Validate checkpoint exists
         if not checkpoint_path.exists():
             raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
-        
+
         # Validate checkpoint integrity
         try:
             checkpoint_data = torch.load(checkpoint_path, map_location=generator.device)
         except Exception as e:
             raise RuntimeError(f"Corrupted checkpoint file: {checkpoint_path}. Error: {e}") from e
-        
+
+        # Check if this is a LoRA checkpoint
+        is_lora = checkpoint_data.get("is_lora", False)
+
         # Load model weights
         try:
-            generator.model.load_state_dict(checkpoint_data["generator_state_dict"])
-            discriminator.model.load_state_dict(checkpoint_data["discriminator_state_dict"])
-            print(f"✓ Loaded checkpoint: {checkpoint_path}")
+            if is_lora:
+                # Load only LoRA adapter weights (strict=False to ignore missing base model weights)
+                gen_missing, gen_unexpected = generator.model.load_state_dict(
+                    checkpoint_data["generator_state_dict"], strict=False
+                )
+                disc_missing, disc_unexpected = discriminator.model.load_state_dict(
+                    checkpoint_data["discriminator_state_dict"], strict=False
+                )
+                print(f"✓ Loaded LoRA checkpoint: {checkpoint_path}")
+                if gen_unexpected or disc_unexpected:
+                    print(f"  Warning: Unexpected keys in checkpoint")
+            else:
+                # Load full model state
+                generator.model.load_state_dict(checkpoint_data["generator_state_dict"])
+                discriminator.model.load_state_dict(checkpoint_data["discriminator_state_dict"])
+                print(f"✓ Loaded checkpoint: {checkpoint_path}")
         except Exception as e:
             raise RuntimeError(f"Failed to load model weights from checkpoint: {e}") from e
-        
+
         # Return metadata
         metadata = {
             "stage": checkpoint_data.get("stage", 0),
             "epoch": checkpoint_data.get("epoch", 0),
             "timestamp": checkpoint_data.get("timestamp", ""),
             "metrics": checkpoint_data.get("metrics", {}),
-            "config": checkpoint_data.get("config", {})
+            "config": checkpoint_data.get("config", {}),
+            "is_lora": is_lora
         }
-        
+
         return metadata
     
     def get_best_checkpoint(self) -> Optional[str]:

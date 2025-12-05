@@ -43,6 +43,11 @@ def main():
         help="Disable LoRA (use full model fine-tuning, requires more memory)"
     )
     parser.add_argument(
+        '--fast',
+        action='store_true',
+        help="Fast mode: reduce tokens, tests, and timeout for 2-3x speedup"
+    )
+    parser.add_argument(
         '--problems',
         type=str,
         default="data/function_problems.json",
@@ -107,21 +112,32 @@ def main():
     model = UnifiedModel(args.model, device=args.device, use_lora=use_lora)
     print()
     
-    # Initialize sandbox
-    sandbox = Sandbox(timeout=5)
-    
     # Create config
+    # Apply fast mode settings if requested
+    if args.fast:
+        print("  ⚡ Fast mode enabled: 2-3x speedup")
+        num_tests = 1
+        max_tokens = 64
+        timeout = 2
+    else:
+        num_tests = 2
+        max_tokens = 128
+        timeout = 3
+    
     config = TrainingConfig(
         n_discriminator_steps=args.n_steps,
         n_generator_steps=args.n_steps,
         k_alternating_steps=0,  # Not used in unified trainer
         learning_rate=args.learning_rate,
-        num_tests_per_problem=3,
-        max_new_tokens=256,
+        num_tests_per_problem=num_tests,
+        max_new_tokens=max_tokens,
         temperature=0.7,
         top_p=0.9,
         clip_epsilon=0.2
     )
+    
+    # Initialize sandbox with appropriate timeout
+    sandbox = Sandbox(timeout=timeout)
     
     # Initialize checkpoint manager
     checkpoint_manager = CheckpointManager(checkpoint_dir="checkpoints_unified")

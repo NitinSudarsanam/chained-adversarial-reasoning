@@ -1,6 +1,7 @@
 """Simplified trainer using a single unified model for both generator and discriminator."""
 
 import torch
+import random
 from typing import List, Dict, Any
 from tqdm import tqdm
 
@@ -47,6 +48,10 @@ class UnifiedTrainer:
         # Caches for efficiency
         self._generation_cache = {}
         self._test_cache = {}
+        
+        # Problem sampling state (for random sampling without replacement)
+        self.problem_indices = []
+        self.problem_index_ptr = 0
     
     def clear_caches(self):
         """Clear generation and test caches to free memory."""
@@ -54,6 +59,26 @@ class UnifiedTrainer:
         self._test_cache.clear()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
+    
+    def _sample_problem(self, problems: List[Problem]) -> Problem:
+        """Sample problem with random shuffling (without replacement per epoch).
+        
+        Args:
+            problems: List of available problems
+            
+        Returns:
+            Sampled problem
+        """
+        if self.problem_index_ptr >= len(problems):
+            # Reshuffle when we've used all problems
+            self.problem_indices = list(range(len(problems)))
+            random.shuffle(self.problem_indices)
+            self.problem_index_ptr = 0
+            print(f"  Shuffled {len(problems)} problems for new epoch")
+        
+        idx = self.problem_indices[self.problem_index_ptr]
+        self.problem_index_ptr += 1
+        return problems[idx]
     
     def train_stage(
         self,
@@ -86,7 +111,8 @@ class UnifiedTrainer:
         num_skipped = 0
         
         for step in tqdm(range(n_steps), desc=f"Stage {stage_id}"):
-            problem = problems[step % len(problems)]
+            # Sample problem (random without replacement)
+            problem = self._sample_problem(problems)
             
             # Clear CUDA cache periodically (not every step)
             if step > 0 and step % 10 == 0 and torch.cuda.is_available():
@@ -139,7 +165,7 @@ class UnifiedTrainer:
             'num_skipped': num_skipped
         }
         
-        # Save checkpoint
+        # Save checkpoint after each stage
         checkpoint_metrics = {
             'generator_reward': avg_gen_reward,
             'discriminator_reward': avg_disc_reward,
@@ -147,15 +173,123 @@ class UnifiedTrainer:
         }
         is_best = self.checkpoint_manager.should_save_as_best(checkpoint_metrics)
         
-        # Note: checkpoint saving would need to be adapted for unified model
-        # self.checkpoint_manager.save_checkpoint(...)
+        # Save unified model checkpoint
+        self._save_unified_checkpoint(stage_id, n_steps, checkpoint_metrics, is_best)
         
         return stage_metrics
     
+    def _save_unified_checkpoint(self, stage: int, epoch: int, metrics: Dict, is_best: bool = False):
+        """Save checkpoint for unified model.
+        
+        Args:
+            stage: Current training stage (1-5)
+            epoch: Current epoch/step number
+            metrics: Training metrics
+            is_best: Whether this is the best checkpoint
+        """
+        from datetime import datetime
+        import torch
+        
+        timestamp = datetime.now().isoformat()
+        
+        # Create checkpoint filename
+        checkpoint_name = f"unified_checkpoint_stage_{stage}_epoch_{epoch}.pt"
+        checkpoint_path = self.checkpoint_manager.checkpoint_dir / checkpoint_name
+        
+        # Move state dicts to CPU to prevent GPU memory spike
+        # Save only LoRA adapters if using LoRA (much smaller)
+        print("  Preparing checkpoint data (moving to CPU)...")
+        
+        if self.model.use_lora:
+            # Save only LoRA adapter weights (both generator and discriminator)
+            model_state = self.model.model.state_dict()
+            model_state_cpu = {k: v.cpu().clone() for k, v in model_state.items()
+                              if 'lora_' in k}
+            del model_state
+            print(f"    Saving LoRA adapters only ({len(model_state_cpu)} parameters)")
+        else:
+            # Save full model state (fallback)
+            model_state = self.model.model.state_dict()
+            model_state_cpu = {k: v.cpu().clone() for k, v in model_state.items()}
+            del model_state
+            print(f"    Saving full model state ({len(model_state_cpu)} parameters)")
+        
+        optimizer_state = self.optimizer.state_dict()
+        optimizer_state_cpu = {}
+        for k, v in optimizer_state.items():
+            if isinstance(v, torch.Tensor):
+                optimizer_state_cpu[k] = v.cpu()
+            else:
+                optimizer_state_cpu[k] = v
+        del optimizer_state  # Free GPU memory immediately
+        
+        # Prepare checkpoint data (all on CPU now)
+        checkpoint_data = {
+            "stage": stage,
+            "epoch": epoch,
+            "timestamp": timestamp,
+            "model_state_dict": model_state_cpu,
+            "optimizer_state_dict": optimizer_state_cpu,
+            "metrics": metrics,
+            "is_lora": self.model.use_lora,
+            "config": {
+                "model_name": self.model.model_name,
+                "device": self.model.device,
+                "use_lora": self.model.use_lora,
+                "current_adapter": self.model.current_adapter
+            }
+        }
+        
+        # Save checkpoint
+        try:
+            torch.save(checkpoint_data, checkpoint_path)
+            print(f"  ✓ Saved checkpoint: {checkpoint_path.name}")
+        except Exception as e:
+            print(f"  ✗ Failed to save checkpoint: {e}")
+            del checkpoint_data, model_state_cpu, optimizer_state_cpu
+            return
+        
+        # Clean up CPU memory
+        del checkpoint_data, model_state_cpu, optimizer_state_cpu
+        
+        # Clear GPU cache
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        
+        # Save metadata
+        metadata_path = checkpoint_path.with_suffix('.json')
+        import json
+        metadata = {
+            "stage": stage,
+            "epoch": epoch,
+            "timestamp": timestamp,
+            "metrics": metrics,
+            "checkpoint_path": str(checkpoint_path),
+            "is_best": is_best
+        }
+        
+        with open(metadata_path, 'w') as f:
+            json.dump(metadata, f, indent=2)
+        
+        # Update best checkpoint if needed
+        if is_best:
+            best_path = self.checkpoint_manager.checkpoint_dir / "unified_checkpoint_best.pt"
+            best_metadata_path = self.checkpoint_manager.checkpoint_dir / "unified_checkpoint_best.json"
+            
+            import shutil
+            shutil.copy2(checkpoint_path, best_path)
+            shutil.copy2(metadata_path, best_metadata_path)
+            print(f"  ✓ Updated best checkpoint")
+    
     def _train_discriminator_step(self, problem: Problem, stage_id: int) -> Dict:
         """Single discriminator training step."""
+        import time
+        step_start = time.time()
+        
         # Generate only up to target stage (not all 5!)
+        gen_start = time.time()
         reasoning_chain, final_code, accumulated_tests = self._generate_up_to_stage(problem, stage_id)
+        gen_time = time.time() - gen_start
         
         if not final_code or not final_code.strip() or not accumulated_tests or not accumulated_tests.strip():
             return None
@@ -173,6 +307,8 @@ class UnifiedTrainer:
         # Switch to discriminator mode
         self.model.set_discriminator_mode()
         
+        # Generate tests
+        test_start = time.time()
         self.model.eval()
         with torch.no_grad():
             stage_tests = self.model.generate_tests(
@@ -183,20 +319,29 @@ class UnifiedTrainer:
                 max_new_tokens=self.config.max_new_tokens,
                 temperature=self.config.temperature
             )
+        test_time = time.time() - test_start
         
         if not stage_tests or not stage_tests.strip():
             return None
         
         # Get log probs with discriminator adapter active
+        logprob_start = time.time()
         old_log_probs = self.model.get_log_probs(prompt, stage_tests)
+        logprob_time = time.time() - logprob_start
         
         # Execute and validate tests
+        exec_start = time.time()
         gen_result = self.sandbox.execute_tests(final_code, accumulated_tests)
         val_result = self.sandbox.validate_tests_against_solution(accumulated_tests, problem.reference_solution)
+        exec_time = time.time() - exec_start
         
         reward = compute_discriminator_reward(gen_result, val_result)
         
+        # Log reward
+        print(f"    Discriminator Reward: {reward:.4f}")
+        
         # Train
+        train_start = time.time()
         self.model.train()
         metrics = train_step(
             model=self.model,
@@ -208,8 +353,30 @@ class UnifiedTrainer:
             clip_epsilon=self.config.clip_epsilon
         )
         self.model.eval()
+        train_time = time.time() - train_start
         
+        total_time = time.time() - step_start
+        
+        # Add timing info
         metrics['reward'] = reward
+        metrics['timing'] = {
+            'generation': gen_time,
+            'test_gen': test_time,
+            'log_probs': logprob_time,
+            'execution': exec_time,
+            'training': train_time,
+            'total': total_time
+        }
+        
+        # Print timing breakdown if slow
+        if total_time > 60:
+            print(f"\n  ⚠ Slow step ({total_time:.1f}s):")
+            print(f"    Generation: {gen_time:.1f}s")
+            print(f"    Test gen: {test_time:.1f}s")
+            print(f"    Log probs: {logprob_time:.1f}s")
+            print(f"    Execution: {exec_time:.1f}s")
+            print(f"    Training: {train_time:.1f}s")
+        
         return metrics
     
     def _train_generator_step(self, problem: Problem, stage_id: int) -> Dict:
@@ -243,6 +410,9 @@ class UnifiedTrainer:
         result = self.sandbox.execute_tests(final_code, accumulated_tests)
         reward = compute_generator_reward(result)
         
+        # Log reward
+        print(f"    Generator Reward: {reward:.4f}")
+        
         # Train
         self.model.train()
         metrics = train_step(
@@ -265,10 +435,12 @@ class UnifiedTrainer:
         This is much more efficient than generating all 5 stages when we only need
         stages 1-N for training stage N.
         """
-        # Check cache first
+        # Check cache first - AGGRESSIVE CACHING
         cache_key = (problem.id, target_stage)
         if hasattr(self, '_generation_cache') and cache_key in self._generation_cache:
-            return self._generation_cache[cache_key]
+            cached = self._generation_cache[cache_key]
+            # Return cached result immediately
+            return cached
         
         reasoning_chain = []
         accumulated_tests = []
