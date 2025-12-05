@@ -2,6 +2,7 @@
 
 import torch
 import re
+from typing import List
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import prepare_model_for_kbit_training, LoraConfig, get_peft_model
 
