@@ -403,6 +403,13 @@ class LLMGenerator:
         code = re.sub(r'\bElse\b', 'else', code)
         code = re.sub(r'\bElif\b', 'elif', code)
         
+        # Fix: "float = '-inf'" -> "float('-inf')"
+        code = re.sub(r"float\s*=\s*['\"](-?inf)['\"]", r"float('\1')", code)
+        code = re.sub(r"int\s*=\s*['\"](\d+)['\"]", r"int('\1')", code)
+        
+        # Fix: "x =  y" -> "x = y" (remove extra spaces)
+        code = re.sub(r'=\s{2,}', '= ', code)
+        
         # Fix: "x=y" -> "x = y" (add spaces around operators)
         code = re.sub(r'(\w+)=([^=])', r'\1 = \2', code)
         code = re.sub(r'([^=])=(\w+)', r'\1= \2', code)
@@ -416,6 +423,9 @@ class LLMGenerator:
         # Fix: "x>y" -> "x > y"
         code = re.sub(r'(\w+)>([^=])', r'\1 > \2', code)
         code = re.sub(r'(\w+)<([^=])', r'\1 < \2', code)
+        
+        # Fix: "max(x,y" -> "max(x, y" (add space after comma)
+        code = re.sub(r',(\w)', r', \1', code)
         
         return code
     

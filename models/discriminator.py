@@ -257,7 +257,7 @@ import pytest
         # Format prompt using chat template for instruction-tuned models
         if hasattr(self.tokenizer, 'apply_chat_template') and self.tokenizer.chat_template:
             messages = [
-                {"role": "system", "content": "You are a test generator. Output ONLY valid pytest test functions with no explanations."},
+                {"role": "system", "content": "You are a pytest test generator. You write TEST FUNCTIONS that start with 'def test_' and use assert statements. You do NOT write implementation code. Output ONLY test functions."},
                 {"role": "user", "content": prompt}
             ]
             formatted_prompt = self.tokenizer.apply_chat_template(
@@ -350,6 +350,13 @@ import pytest
         code = re.sub(r'\bElse\b', 'else', code)
         code = re.sub(r'\bElif\b', 'elif', code)
         
+        # Fix: "float = '-inf'" -> "float('-inf')"
+        code = re.sub(r"float\s*=\s*['\"](-?inf)['\"]", r"float('\1')", code)
+        code = re.sub(r"int\s*=\s*['\"](\d+)['\"]", r"int('\1')", code)
+        
+        # Fix: "x =  y" -> "x = y" (remove extra spaces)
+        code = re.sub(r'=\s{2,}', '= ', code)
+        
         # Fix: "assert x==y" -> "assert x == y"
         code = re.sub(r'assert\s+(\w+)==(\w+)', r'assert \1 == \2', code)
         
@@ -358,6 +365,9 @@ import pytest
         code = re.sub(r'(\w+)\+=(\w+)', r'\1 += \2', code)
         code = re.sub(r'(\w+)>([^=])', r'\1 > \2', code)
         code = re.sub(r'(\w+)<([^=])', r'\1 < \2', code)
+        
+        # Fix: "max(x,y" -> "max(x, y" (add space after comma)
+        code = re.sub(r',(\w)', r', \1', code)
         
         return code
     

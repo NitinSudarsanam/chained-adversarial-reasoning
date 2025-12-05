@@ -228,22 +228,31 @@ CODE (no explanations):
 # ```python
 # """
 ,
-        discriminator_prompt_template="""You are a test generator. Generate ONLY valid pytest test functions.
+        discriminator_prompt_template="""Generate pytest test functions to test the given code.
 
 Problem: {problem}
 
 Code to test:
 {stage_output}
 
-STRICT RULES:
-- Output ONLY {num_tests} test functions
-- NO explanations, NO comments outside functions
-- Each test MUST start with "def test_"
-- Use correct Python syntax (spaces, colons, indentation)
-- Use assert statements
-- Import pytest at the top
+Generate {num_tests} test functions that call the code above and check if it works correctly.
 
-TESTS (no explanations):
+CRITICAL: You must write TEST FUNCTIONS, not implementation code!
+
+Example format:
+```python
+import pytest
+
+def test_basic_case():
+    result = function_name(input)
+    assert result == expected_output
+
+def test_edge_case():
+    result = function_name(edge_input)
+    assert result == expected_edge_output
+```
+
+Now write {num_tests} test functions:
 ```python
 import pytest
 
