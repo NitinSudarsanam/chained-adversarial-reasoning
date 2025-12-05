@@ -69,8 +69,9 @@ class UnifiedTrainer:
         Returns:
             Sampled problem
         """
-        if self.problem_index_ptr >= len(problems):
-            # Reshuffle when we've used all problems
+        # Initialize or reshuffle when needed
+        if not self.problem_indices or self.problem_index_ptr >= len(problems):
+            # Reshuffle when we've used all problems or first time
             self.problem_indices = list(range(len(problems)))
             random.shuffle(self.problem_indices)
             self.problem_index_ptr = 0
