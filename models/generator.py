@@ -370,6 +370,41 @@ class LLMGenerator:
         
         return text.strip()
     
+    def _fix_common_syntax_errors(self, code: str) -> str:
+        """Fix common syntax errors made by LLMs.
+        
+        Args:
+            code: Code with potential syntax errors
+            
+        Returns:
+            Code with common errors fixed
+        """
+        import re
+        
+        # Fix: "for xiny:" -> "for x in y:"
+        code = re.sub(r'\bfor\s+(\w+)in(\w+):', r'for \1 in \2:', code)
+        
+        # Fix: "If" -> "if", "Else" -> "else", "Elif" -> "elif"
+        code = re.sub(r'\bIf\b', 'if', code)
+        code = re.sub(r'\bElse\b', 'else', code)
+        code = re.sub(r'\bElif\b', 'elif', code)
+        
+        # Fix: "x=y" -> "x = y" (add spaces around operators)
+        code = re.sub(r'(\w+)=([^=])', r'\1 = \2', code)
+        code = re.sub(r'([^=])=(\w+)', r'\1= \2', code)
+        
+        # Fix: "x+=y" -> "x += y"
+        code = re.sub(r'(\w+)\+=(\w+)', r'\1 += \2', code)
+        code = re.sub(r'(\w+)-=(\w+)', r'\1 -= \2', code)
+        code = re.sub(r'(\w+)\*=(\w+)', r'\1 *= \2', code)
+        code = re.sub(r'(\w+)/=(\w+)', r'\1 /= \2', code)
+        
+        # Fix: "x>y" -> "x > y"
+        code = re.sub(r'(\w+)>([^=])', r'\1 > \2', code)
+        code = re.sub(r'(\w+)<([^=])', r'\1 < \2', code)
+        
+        return code
+    
     def _clean_generated_code(self, code: str) -> str:
         """Clean generated code to ensure it's executable.
         
@@ -382,7 +417,26 @@ class LLMGenerator:
         # Remove any leading/trailing whitespace
         code = code.strip()
         
-        # Split into lines
+        # OPTIMIZATION: Remove explanatory text before the first function
+        # Look for the first line starting with "def " or "class "
+        lines = code.split('\n')
+        first_def_idx = -1
+        for i, line in enumerate(lines):
+            if line.strip().startswith(('def ', 'class ')):
+                first_def_idx = i
+                break
+        
+        # If we found a function/class, remove everything before it
+        if first_def_idx > 0:
+            lines = lines[first_def_idx:]
+        
+        # Rejoin lines
+        code = '\n'.join(lines)
+        
+        # OPTIMIZATION: Fix common syntax errors
+        code = self._fix_common_syntax_errors(code)
+        
+        # Split into lines again for further processing
         lines = code.split('\n')
         
         # Strategy: Find the BEST function/class definition

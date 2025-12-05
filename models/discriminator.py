@@ -317,6 +317,36 @@ import pytest
         
         return text.strip()
     
+    def _fix_common_syntax_errors(self, code: str) -> str:
+        """Fix common syntax errors made by LLMs.
+        
+        Args:
+            code: Code with potential syntax errors
+            
+        Returns:
+            Code with common errors fixed
+        """
+        import re
+        
+        # Fix: "for xiny:" -> "for x in y:"
+        code = re.sub(r'\bfor\s+(\w+)in(\w+):', r'for \1 in \2:', code)
+        
+        # Fix: "If" -> "if", "Else" -> "else", "Elif" -> "elif"
+        code = re.sub(r'\bIf\b', 'if', code)
+        code = re.sub(r'\bElse\b', 'else', code)
+        code = re.sub(r'\bElif\b', 'elif', code)
+        
+        # Fix: "assert x==y" -> "assert x == y"
+        code = re.sub(r'assert\s+(\w+)==(\w+)', r'assert \1 == \2', code)
+        
+        # Fix: missing spaces in operators
+        code = re.sub(r'(\w+)=([^=])', r'\1 = \2', code)
+        code = re.sub(r'(\w+)\+=(\w+)', r'\1 += \2', code)
+        code = re.sub(r'(\w+)>([^=])', r'\1 > \2', code)
+        code = re.sub(r'(\w+)<([^=])', r'\1 < \2', code)
+        
+        return code
+    
     def _sanitize_test_code(self, code: str) -> str:
         """Sanitize generated test code.
         
@@ -326,6 +356,22 @@ import pytest
         Returns:
             Sanitized test code
         """
+        # Remove explanatory text before first import or test function
+        lines = code.split('\n')
+        first_code_idx = -1
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if stripped.startswith(('import ', 'from ', 'def test_')):
+                first_code_idx = i
+                break
+        
+        if first_code_idx > 0:
+            lines = lines[first_code_idx:]
+            code = '\n'.join(lines)
+        
+        # Fix common syntax errors
+        code = self._fix_common_syntax_errors(code)
+        
         # Ensure pytest import
         if 'import pytest' not in code:
             code = 'import pytest\n\n' + code

@@ -189,25 +189,24 @@ import pytest
         id=5,
         name="Executable Code",
         description="Final Python implementation",
-        generator_prompt_template="""You are an expert Python programmer solving coding problems.
+        generator_prompt_template="""You are a Python code generator. Generate ONLY executable Python code.
 
 Problem: {problem}
 
 Function Signature: {function_signature}
 
-CRITICAL REQUIREMENTS:
-1. Use the EXACT function signature provided above
-2. Write ONLY the function implementation - no explanations, no comments outside the function
-3. The function must be complete and executable
-4. Return the computed result
-5. Do NOT write multiple functions - only ONE function
-6. Do NOT include test code or example usage
+STRICT RULES:
+- Output ONLY the function code
+- NO explanations, NO comments, NO text before or after
+- Start directly with "def"
+- Use the EXACT function signature
+- Write syntactically valid Python
+- Return the result
 
 Previous reasoning:
 {previous_stages}
 
-Write your Python function below:
-
+CODE (no explanations):
 ```python
 """
         
@@ -229,25 +228,22 @@ Write your Python function below:
 # ```python
 # """
 ,
-        discriminator_prompt_template="""You are generating adversarial test cases for a coding problem.
+        discriminator_prompt_template="""You are a test generator. Generate ONLY valid pytest test functions.
 
 Problem: {problem}
 
-Generated Code:
+Code to test:
 {stage_output}
 
-Generate {num_tests} challenging test cases as pytest functions. Make them adversarial - try to find bugs.
+STRICT RULES:
+- Output ONLY {num_tests} test functions
+- NO explanations, NO comments outside functions
+- Each test MUST start with "def test_"
+- Use correct Python syntax (spaces, colons, indentation)
+- Use assert statements
+- Import pytest at the top
 
-CRITICAL REQUIREMENTS:
-1. Write ONLY pytest test functions - no explanations
-2. Each test must start with "def test_"
-3. Use assert statements to check correctness
-4. Tests must be syntactically valid Python
-5. Be adversarial - try to break the code
-6. Test edge cases, corner cases, and tricky inputs
-
-Write your test functions below:
-
+TESTS (no explanations):
 ```python
 import pytest
 
