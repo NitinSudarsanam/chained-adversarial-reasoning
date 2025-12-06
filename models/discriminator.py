@@ -376,6 +376,16 @@ import pytest
         while re.search(r'(\w+)-(\w+)', code):
             code = re.sub(r'(\w+)-(\w+)', r'\1_\2', code)
         
+        # Fix: "maxSub Array" -> "maxSubArray" (remove spaces in function names)
+        code = re.sub(r'(\w+)\s+([A-Z]\w+)\s*\(', r'\1\2(', code)
+        
+        # Fix: "def  test_" -> "def test_" (remove extra spaces after def)
+        code = re.sub(r'def\s{2,}test_', 'def test_', code)
+        
+        # Fix common typos in function names within the same test
+        # This is tricky - we'll try to find the most common function name and use it
+        # For now, just remove obvious typos
+        
         return code
     
     def _sanitize_test_code(self, code: str) -> str:
