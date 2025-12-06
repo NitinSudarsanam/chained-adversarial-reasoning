@@ -356,6 +356,10 @@ import pytest
         
         # Fix: "x =  y" -> "x = y" (remove extra spaces)
         code = re.sub(r'=\s{2,}', '= ', code)
+
+        code = re.sub(r'\s+.', '.', code)
+        code = re.sub(r'\[\s+', '[', code)
+        code = re.sub(r'\s+\]', ']', code)
         
         # Fix: "assert x==y" -> "assert x == y"
         code = re.sub(r'assert\s+(\w+)==(\w+)', r'assert \1 == \2', code)
