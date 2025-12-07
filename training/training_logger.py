@@ -161,6 +161,103 @@ class TrainingLogger:
         self.current_session["epoch_summaries"].append(summary)
         self._save()
     
+    def log_problem_summary(
+        self,
+        problem_id: str,
+        stage_id: int,
+        model_type: str,
+        disc_reward: float,
+        gen_reward: float,
+        num_tests_generated: int,
+        num_tests_valid: int,
+        num_tests_passed: int,
+        num_tests_total: int,
+        test_validity_rate: float,
+        test_pass_rate: float,
+        has_syntax_error: bool
+    ):
+        """Log summary after processing one problem.
+        
+        Args:
+            problem_id: Problem identifier
+            stage_id: Reasoning stage
+            model_type: discriminator or generator
+            disc_reward: Discriminator reward
+            gen_reward: Generator reward
+            num_tests_generated: Total tests generated
+            num_tests_valid: Valid tests only
+            num_tests_passed: Tests passed
+            num_tests_total: Tests evaluated (valid only)
+            test_validity_rate: Fraction of generated tests that are valid
+            test_pass_rate: Fraction of valid tests that passed
+            has_syntax_error: Whether code has syntax errors
+        """
+        if "problem_summaries" not in self.current_session:
+            self.current_session["problem_summaries"] = []
+        
+        summary = {
+            "problem_id": problem_id,
+            "stage_id": stage_id,
+            "model_type": model_type,
+            "timestamp": datetime.now().isoformat(),
+            "disc_reward": disc_reward,
+            "gen_reward": gen_reward,
+            "num_tests_generated": num_tests_generated,
+            "num_tests_valid": num_tests_valid,
+            "num_tests_passed": num_tests_passed,
+            "num_tests_total": num_tests_total,
+            "test_validity_rate": test_validity_rate,
+            "test_pass_rate": test_pass_rate,
+            "has_syntax_error": has_syntax_error
+        }
+        
+        self.current_session["problem_summaries"].append(summary)
+        self._save()
+    
+    def log_stage_summary(
+        self,
+        stage_id: int,
+        model_type: str,
+        num_problems: int,
+        avg_disc_reward: float,
+        avg_gen_reward: float,
+        avg_test_validity_rate: float,
+        avg_test_pass_rate: float,
+        avg_loss: float,
+        syntax_error_rate: float
+    ):
+        """Log summary after completing a stage.
+        
+        Args:
+            stage_id: Reasoning stage
+            model_type: discriminator or generator
+            num_problems: Number of problems processed
+            avg_disc_reward: Average discriminator reward
+            avg_gen_reward: Average generator reward
+            avg_test_validity_rate: Average test validity rate
+            avg_test_pass_rate: Average pass rate on valid tests
+            avg_loss: Average training loss
+            syntax_error_rate: Fraction with syntax errors
+        """
+        if "stage_summaries" not in self.current_session:
+            self.current_session["stage_summaries"] = []
+        
+        summary = {
+            "stage_id": stage_id,
+            "model_type": model_type,
+            "timestamp": datetime.now().isoformat(),
+            "num_problems": num_problems,
+            "avg_disc_reward": avg_disc_reward,
+            "avg_gen_reward": avg_gen_reward,
+            "avg_test_validity_rate": avg_test_validity_rate,
+            "avg_test_pass_rate": avg_test_pass_rate,
+            "avg_loss": avg_loss,
+            "syntax_error_rate": syntax_error_rate
+        }
+        
+        self.current_session["stage_summaries"].append(summary)
+        self._save()
+    
     def end_session(self):
         """Mark session as complete."""
         self.current_session["end_time"] = datetime.now().isoformat()

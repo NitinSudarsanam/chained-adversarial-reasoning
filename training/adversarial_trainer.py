@@ -236,7 +236,7 @@ class AdversarialTrainer:
             except:
                 pass
             
-            # Log to file
+            # Log to file (per-step)
             self.global_step += 1
             self.logger.log_step(
                 step=self.global_step,
@@ -258,11 +258,53 @@ class AdversarialTrainer:
                 has_syntax_error=has_syntax_error,
                 test_samples=test_samples
             )
+            
+            # Log problem summary (after each problem)
+            self.logger.log_problem_summary(
+                problem_id=problem.id,
+                stage_id=stage_id,
+                model_type="discriminator",
+                disc_reward=reward,
+                gen_reward=rewards.generator_reward,
+                num_tests_generated=gen_result.num_total,
+                num_tests_valid=gen_result_valid.num_total,
+                num_tests_passed=gen_result_valid.num_passed,
+                num_tests_total=gen_result_valid.num_total,
+                test_validity_rate=gen_result_valid.num_total / gen_result.num_total if gen_result.num_total > 0 else 0.0,
+                test_pass_rate=gen_result_valid.num_passed / gen_result_valid.num_total if gen_result_valid.num_total > 0 else 0.0,
+                has_syntax_error=has_syntax_error
+            )
         
         # Calculate average over successful steps only
         num_successful = n_steps - num_skipped
         avg_reward = total_reward / num_successful if num_successful > 0 else 0.0
         avg_loss = total_loss / num_updates if num_updates > 0 else 0.0
+        
+        # Calculate aggregate metrics from problem summaries
+        problem_summaries = [s for s in self.logger.current_session.get("problem_summaries", []) 
+                            if s["stage_id"] == stage_id and s["model_type"] == "discriminator"]
+        
+        if problem_summaries:
+            avg_disc_reward = sum(s["disc_reward"] for s in problem_summaries) / len(problem_summaries)
+            avg_gen_reward = sum(s["gen_reward"] for s in problem_summaries) / len(problem_summaries)
+            avg_validity = sum(s["test_validity_rate"] for s in problem_summaries) / len(problem_summaries)
+            avg_pass_rate = sum(s["test_pass_rate"] for s in problem_summaries) / len(problem_summaries)
+            syntax_error_rate = sum(1 for s in problem_summaries if s["has_syntax_error"]) / len(problem_summaries)
+        else:
+            avg_disc_reward = avg_gen_reward = avg_validity = avg_pass_rate = syntax_error_rate = 0.0
+        
+        # Log stage summary
+        self.logger.log_stage_summary(
+            stage_id=stage_id,
+            model_type="discriminator",
+            num_problems=num_successful,
+            avg_disc_reward=avg_disc_reward,
+            avg_gen_reward=avg_gen_reward,
+            avg_test_validity_rate=avg_validity,
+            avg_test_pass_rate=avg_pass_rate,
+            avg_loss=avg_loss,
+            syntax_error_rate=syntax_error_rate
+        )
         
         # Log summary
         print(f"\n  Discriminator Training Summary:")
@@ -417,7 +459,7 @@ class AdversarialTrainer:
             except:
                 pass
             
-            # Log to file
+            # Log to file (per-step)
             self.global_step += 1
             self.logger.log_step(
                 step=self.global_step,
@@ -439,11 +481,53 @@ class AdversarialTrainer:
                 has_syntax_error=has_syntax_error,
                 test_samples=test_samples
             )
+            
+            # Log problem summary (after each problem)
+            self.logger.log_problem_summary(
+                problem_id=problem.id,
+                stage_id=stage_id,
+                model_type="generator",
+                disc_reward=rewards.discriminator_reward,
+                gen_reward=reward,
+                num_tests_generated=gen_result.num_total,
+                num_tests_valid=gen_result_valid.num_total,
+                num_tests_passed=gen_result_valid.num_passed,
+                num_tests_total=gen_result_valid.num_total,
+                test_validity_rate=gen_result_valid.num_total / gen_result.num_total if gen_result.num_total > 0 else 0.0,
+                test_pass_rate=gen_result_valid.num_passed / gen_result_valid.num_total if gen_result_valid.num_total > 0 else 0.0,
+                has_syntax_error=has_syntax_error
+            )
         
         # Calculate average over successful steps only
         num_successful = n_steps - num_skipped
         avg_reward = total_reward / num_successful if num_successful > 0 else 0.0
         avg_loss = total_loss / num_updates if num_updates > 0 else 0.0
+        
+        # Calculate aggregate metrics from problem summaries
+        problem_summaries = [s for s in self.logger.current_session.get("problem_summaries", []) 
+                            if s["stage_id"] == stage_id and s["model_type"] == "generator"]
+        
+        if problem_summaries:
+            avg_disc_reward = sum(s["disc_reward"] for s in problem_summaries) / len(problem_summaries)
+            avg_gen_reward = sum(s["gen_reward"] for s in problem_summaries) / len(problem_summaries)
+            avg_validity = sum(s["test_validity_rate"] for s in problem_summaries) / len(problem_summaries)
+            avg_pass_rate = sum(s["test_pass_rate"] for s in problem_summaries) / len(problem_summaries)
+            syntax_error_rate = sum(1 for s in problem_summaries if s["has_syntax_error"]) / len(problem_summaries)
+        else:
+            avg_disc_reward = avg_gen_reward = avg_validity = avg_pass_rate = syntax_error_rate = 0.0
+        
+        # Log stage summary
+        self.logger.log_stage_summary(
+            stage_id=stage_id,
+            model_type="generator",
+            num_problems=num_successful,
+            avg_disc_reward=avg_disc_reward,
+            avg_gen_reward=avg_gen_reward,
+            avg_test_validity_rate=avg_validity,
+            avg_test_pass_rate=avg_pass_rate,
+            avg_loss=avg_loss,
+            syntax_error_rate=syntax_error_rate
+        )
         
         # Log summary
         print(f"\n  Generator Training Summary:")
