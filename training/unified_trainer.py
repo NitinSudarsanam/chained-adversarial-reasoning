@@ -6,10 +6,9 @@ from typing import List, Dict, Any
 from tqdm import tqdm
 
 from models.unified_model import UnifiedModel
-from sandbox.sandbox import Sandbox
 from data.problem_dataset import Problem
 from reasoning.stages import get_stage
-from training.reward import compute_generator_reward, compute_discriminator_reward
+from training.reward import compute_generator_reward, compute_discriminator_reward, run_code_tests
 from training.rl_loop import train_step, create_optimizer, freeze_model, unfreeze_model
 from training.config import TrainingConfig
 from training.checkpoint_manager import CheckpointManager
@@ -21,7 +20,6 @@ class UnifiedTrainer:
     def __init__(
         self,
         model: UnifiedModel,
-        sandbox: Sandbox,
         config: TrainingConfig,
         checkpoint_manager: CheckpointManager = None
     ):
@@ -29,12 +27,10 @@ class UnifiedTrainer:
         
         Args:
             model: Unified model (acts as both generator and discriminator)
-            sandbox: Sandbox for code execution
             config: Training configuration
             checkpoint_manager: Optional checkpoint manager
         """
         self.model = model
-        self.sandbox = sandbox
         self.config = config
         self.checkpoint_manager = checkpoint_manager or CheckpointManager()
         
@@ -330,13 +326,9 @@ class UnifiedTrainer:
         old_log_probs = self.model.get_log_probs(prompt, stage_tests)
         logprob_time = time.time() - logprob_start
         
-        # Execute and validate tests
-        exec_start = time.time()
-        gen_result = self.sandbox.execute_tests(final_code, accumulated_tests)
-        val_result = self.sandbox.validate_tests_against_solution(accumulated_tests, problem.reference_solution)
-        exec_time = time.time() - exec_start
-        
-        reward = compute_discriminator_reward(gen_result, val_result)
+        # Compute rewards using run_code_tests
+        rewards = run_code_tests(final_code, accumulated_tests, problem.reference_solution)
+        reward = rewards.discriminator_reward
         
         # Calculate pass percentages
         gen_pass_pct = (gen_result.num_passed / gen_result.num_total * 100) if gen_result.num_total > 0 else 0.0
@@ -413,9 +405,9 @@ class UnifiedTrainer:
         # Get log probs with generator adapter active
         old_log_probs = self.model.get_log_probs(prompt, stage_output)
         
-        # Execute tests
-        result = self.sandbox.execute_tests(final_code, accumulated_tests)
-        reward = compute_generator_reward(result)
+        # Compute rewards using run_code_tests
+        rewards = run_code_tests(final_code, accumulated_tests, problem.reference_solution)
+        reward = rewards.generator_reward
         
         # Calculate pass percentage
         pass_pct = (result.num_passed / result.num_total * 100) if result.num_total > 0 else 0.0

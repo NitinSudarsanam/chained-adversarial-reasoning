@@ -256,8 +256,19 @@ import pytest
         
         # Format prompt using chat template for instruction-tuned models
         if hasattr(self.tokenizer, 'apply_chat_template') and self.tokenizer.chat_template:
+            system_prompt = """You are an expert in Software Testing. You have been tasked with generating test cases for Leetcode-style questions in Python.
+
+You will be given a problem description and a function signature. You should construct your test case suite as a Python list of test cases, where each test case is a Python tuple, where the first n-1 elements represent the inputs to the function, and the final element represents the expected result.
+
+The test cases that you generate will be run against a candidate implementation, and your test suite should be as thorough as possible. You will achieve an award for catching edge cases.
+
+IMPORTANT:
+- You should ONLY output the test cases as a Python list. Do not attempt to solve the problem yourself.
+- Your test cases MUST not fail against a ground-truth solution. If they do, you will incur a large penalty.
+- Output ONLY the Python list in a code block, nothing else."""
+
             messages = [
-                {"role": "system", "content": "You are a pytest test generator. You write TEST FUNCTIONS that start with 'def test_' and use assert statements. You do NOT write implementation code. Output ONLY test functions."},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}
             ]
             formatted_prompt = self.tokenizer.apply_chat_template(
@@ -399,27 +410,28 @@ import pytest
             code: Raw generated test code
             
         Returns:
-            Sanitized test code
+            Sanitized test code (list of tuples format)
         """
-        # Remove explanatory text before first import or test function
+        # The new format is a Python list of tuples, not pytest functions
+        # Just extract the list from the code
+        
+        # Remove explanatory text before the list
         lines = code.split('\n')
-        first_code_idx = -1
+        first_bracket_idx = -1
         for i, line in enumerate(lines):
-            stripped = line.strip()
-            if stripped.startswith(('import ', 'from ', 'def test_')):
-                first_code_idx = i
+            if line.strip().startswith('['):
+                first_bracket_idx = i
                 break
         
-        if first_code_idx > 0:
-            lines = lines[first_code_idx:]
+        if first_bracket_idx > 0:
+            lines = lines[first_bracket_idx:]
             code = '\n'.join(lines)
         
         # Fix common syntax errors
         code = self._fix_common_syntax_errors(code)
         
-        # Ensure pytest import
-        if 'import pytest' not in code:
-            code = 'import pytest\n\n' + code
+        # The code should now be a Python list of tuples
+        # No need for pytest import
         
         # Remove incomplete test functions at the end
         lines = code.split('\n')

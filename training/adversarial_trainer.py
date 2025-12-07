@@ -7,10 +7,9 @@ from tqdm import tqdm
 
 from models.generator import LLMGenerator
 from models.discriminator import LLMDiscriminator
-from sandbox.sandbox import Sandbox
 from data.problem_dataset import Problem
 from reasoning.stages import get_stage
-from training.reward import compute_generator_reward, compute_discriminator_reward
+from training.reward import compute_generator_reward, compute_discriminator_reward, run_code_tests
 from training.rl_loop import (
     train_step,
     create_optimizer,
@@ -28,7 +27,6 @@ class AdversarialTrainer:
         self,
         generator: LLMGenerator,
         discriminator: LLMDiscriminator,
-        sandbox: Sandbox,
         config: TrainingConfig,
         checkpoint_manager: CheckpointManager = None
     ):
@@ -37,13 +35,11 @@ class AdversarialTrainer:
         Args:
             generator: Generator LLM
             discriminator: Discriminator LLM
-            sandbox: Sandbox for code execution
             config: Training configuration
             checkpoint_manager: Optional checkpoint manager for saving/loading
         """
         self.generator = generator
         self.discriminator = discriminator
-        self.sandbox = sandbox
         self.config = config
         self.checkpoint_manager = checkpoint_manager or CheckpointManager()
         
@@ -170,16 +166,9 @@ class AdversarialTrainer:
             
             old_log_probs = self.discriminator.get_log_probs(prompt, stage_tests)
             
-            # Execute ALL accumulated tests against final code
-            gen_result = self.sandbox.execute_tests(final_code, accumulated_tests)
-            
-            # Validate ALL accumulated tests against ground truth
-            val_result = self.sandbox.validate_tests_against_solution(
-                accumulated_tests, problem.reference_solution
-            )
-            
-            # Compute reward based on ALL tests
-            reward = compute_discriminator_reward(gen_result, val_result)
+            # Compute reward using run_code_tests
+            rewards = run_code_tests(final_code, accumulated_tests, problem.reference_solution)
+            reward = rewards.discriminator_reward
             total_reward += reward
             
             # Calculate pass percentages

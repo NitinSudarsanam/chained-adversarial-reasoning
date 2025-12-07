@@ -260,8 +260,17 @@ class LLMGenerator:
         
         # Format prompt using chat template for instruction-tuned models
         if hasattr(self.tokenizer, 'apply_chat_template') and self.tokenizer.chat_template:
+            system_prompt = """You are an expert in Python programming. You have been tasked to solve Leetcode-style questions.
+
+You will be given a problem description and a function which you must implement. Your implementation will then be run against a suite of test cases, and your goal is to pass as many test cases as possible.
+
+IMPORTANT:
+- You will be given an EXACT function signature to use. You MUST use this EXACT function signature, or else your solution will not execute and you will receive no credit.
+- Write a complete, working Python function. DO NOT leave placeholders or TODOs.
+- You should output only the Python function, and nothing else. Do not write test cases or show example use cases."""
+
             messages = [
-                {"role": "system", "content": "You are a Python programmer. Write complete, working Python functions. Do NOT leave placeholder comments. Do NOT write explanations. Output ONLY the function code."},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}
             ]
             formatted_prompt = self.tokenizer.apply_chat_template(

@@ -1,103 +1,76 @@
 """Reward computation for adversarial RL training."""
 
-from sandbox.sandbox import ExecutionResult
+from dataclasses import dataclass
+from execution.direct_executor import execute_tests, ExecutionResult
+
+
+@dataclass
+class Rewards:
+    """Rewards for both generator and discriminator."""
+    generator_reward: float
+    discriminator_reward: float
+
+
+def run_code_tests(code: str, tests: str, ground_truth: str) -> Rewards:
+    """Compute rewards by executing code and tests.
+    
+    Args:
+        code: Generated code to test
+        tests: Test cases as string representation of list of tuples
+        ground_truth: Reference solution
+        
+    Returns:
+        Rewards object with generator and discriminator rewards
+    """
+    # Execute ground truth first to validate tests
+    val_result = execute_tests(ground_truth, tests)
+    
+    # Execute generated code with validity info from validation
+    gen_result = execute_tests(code, tests, val_result)
+    
+    if gen_result.num_total == 0:
+        return Rewards(0, -1)
+    
+    # Reward constants (normalized by test count)
+    n = gen_result.num_total
+    CORRECT_TEST = 0.01 / n
+    WRONG_TEST = -1 / n
+    PASSED_TEST = 1 / n
+    FAILED_TEST = -1 / n
+    CAUGHT_BUG = 1 / n
+    
+    # Compute rewards directly from execution indices
+    valid_indices = [i for i, v in enumerate(gen_result.is_valid) if v]
+    invalid_indices = [i for i, v in enumerate(gen_result.is_valid) if not v]
+    
+    # Rewards for valid tests
+    valid_passed = len(set(valid_indices) & set(gen_result.passed_tests))
+    valid_failed = len(valid_indices) - valid_passed
+    
+    gen_reward = (valid_passed * PASSED_TEST) + (valid_failed * FAILED_TEST)
+    disc_reward = (len(valid_indices) * CORRECT_TEST) + (valid_passed * 0) + (valid_failed * CAUGHT_BUG) + (len(invalid_indices) * WRONG_TEST)
+    
+    print(f"num tests: {n}")
+    print(f"valid tests: {len(valid_indices)}")
+    print(f"passed valid tests: {valid_passed}")
+    
+    return Rewards(gen_reward, disc_reward)
 
 
 def compute_generator_reward(execution_result: ExecutionResult) -> float:
-    """Compute reward for generator based on test pass rate.
-    
-    The generator is rewarded for passing more tests. Reward is the
-    percentage of tests passed.
-    
-    Args:
-        execution_result: Result from executing generator code against tests
-        
-    Returns:
-        Reward in range [0.0, 1.0]
-    """
+    """Generator reward = pass rate."""
     if execution_result.num_total == 0:
-        # No tests to pass - this is a failure case (discriminator failed to generate tests)
-        # Give zero reward to avoid rewarding the generator for doing nothing
         return 0.0
-    
-    if execution_result.timed_out:
-        # Timeout is a failure
-        return 0.0
-    
-    # Reward = pass rate
-    pass_rate = execution_result.num_passed / execution_result.num_total
-    
-    return float(pass_rate)
+    return execution_result.num_passed / execution_result.num_total
 
 
 def compute_discriminator_reward(
     generator_result: ExecutionResult,
     validation_result: ExecutionResult
 ) -> float:
-    """Compute reward for discriminator based on adversarial effectiveness.
-    
-    The discriminator is rewarded for:
-    1. Making the generator fail tests (1.0 - generator_pass_rate)
-    2. Generating valid tests that pass against ground truth (test_validity)
-    
-    Final reward = (1.0 - generator_pass_rate) * test_validity_score
-    
-    This creates adversarial competition while penalizing invalid tests.
-    
-    Args:
-        generator_result: Result from running tests against generator code
-        validation_result: Result from running tests against ground truth
-        
-    Returns:
-        Reward in range [0.0, 1.0]
-    """
-    # Compute generator pass rate
-    if generator_result.num_total == 0:
-        generator_pass_rate = 0.0
-    else:
-        generator_pass_rate = generator_result.num_passed / generator_result.num_total
-    
-    # Compute test validity score
-    if validation_result.num_total == 0:
-        test_validity = 0.0
-    else:
-        test_validity = validation_result.num_passed / validation_result.num_total
-    
-    # Discriminator wants generator to fail (low pass rate)
-    # But only gets credit if tests are valid (pass ground truth)
-    adversarial_score = 1.0 - generator_pass_rate
-    reward = adversarial_score * test_validity
-    
-    return float(reward)
-
-
-def normalize_reward(reward: float, min_val: float = 0.0, max_val: float = 1.0) -> float:
-    """Normalize reward to specified range.
-    
-    Args:
-        reward: Raw reward value
-        min_val: Minimum value for normalization
-        max_val: Maximum value for normalization
-        
-    Returns:
-        Normalized reward
-    """
-    # Clip to range
-    reward = max(min_val, min(max_val, reward))
-    
-    return reward
-
-
-def compute_pass_rate(execution_result: ExecutionResult) -> float:
-    """Compute test pass rate from execution result.
-    
-    Args:
-        execution_result: Execution result
-        
-    Returns:
-        Pass rate in range [0.0, 1.0]
-    """
-    if execution_result.num_total == 0:
-        return 0.0
-    
-    return execution_result.num_passed / execution_result.num_total
+    """Discriminator reward = (1 - gen_pass_rate) * test_validity."""
+    gen_pass = (generator_result.num_passed / generator_result.num_total 
+                if generator_result.num_total > 0 else 0.0)
+    val_pass = (validation_result.num_passed / validation_result.num_total 
+                if validation_result.num_total > 0 else 0.0)
+    return (1.0 - gen_pass) * val_pass

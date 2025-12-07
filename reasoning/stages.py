@@ -189,24 +189,14 @@ import pytest
         id=5,
         name="Executable Code",
         description="Final Python implementation",
-        generator_prompt_template="""Write a complete Python function to solve this problem.
+        generator_prompt_template="""PROBLEM DESCRIPTION: {problem}
 
-Problem: {problem}
-
-Function signature: {function_signature}
-
-Requirements:
-- Write the COMPLETE function implementation
-- Use the exact function signature above
-- Include all necessary logic
-- Return the result
-- Do NOT leave placeholder comments like "# Your code here"
-- Do NOT write explanations
+FUNCTION SIGNATURE: {function_signature}
 
 Previous reasoning:
 {previous_stages}
 
-Complete function:
+YOUR RESPONSE:
 ```python
 """
         
@@ -228,34 +218,24 @@ Complete function:
 # ```python
 # """
 ,
-        discriminator_prompt_template="""Generate pytest test functions to test the given code.
+        discriminator_prompt_template="""PROBLEM DESCRIPTION: {problem}
 
-Problem: {problem}
-
-Code to test:
+CODE TO TEST:
 {stage_output}
 
-Generate {num_tests} test functions that call the code above and check if it works correctly.
-
-CRITICAL: You must write TEST FUNCTIONS, not implementation code!
+Generate {num_tests} test cases as a Python list of tuples. Each tuple should contain the function inputs followed by the expected output.
 
 Example format:
 ```python
-import pytest
-
-def test_basic_case():
-    result = function_name(input)
-    assert result == expected_output
-
-def test_edge_case():
-    result = function_name(edge_input)
-    assert result == expected_edge_output
+[
+    (input1, input2, expected_output),
+    (input1, input2, expected_output),
+    (input1, input2, expected_output)
+]
 ```
 
-Now write {num_tests} test functions:
+YOUR RESPONSE:
 ```python
-import pytest
-
 """
     )
 ]

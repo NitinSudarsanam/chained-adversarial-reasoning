@@ -13,7 +13,6 @@ if torch.cuda.is_available():
     print("Cleared GPU cache")
 
 from models.unified_model import UnifiedModel
-from sandbox.sandbox import Sandbox
 from data.problem_dataset import load_problems
 from training.unified_trainer import UnifiedTrainer
 from training.config import TrainingConfig
@@ -136,16 +135,12 @@ def main():
         clip_epsilon=0.2
     )
     
-    # Initialize sandbox with appropriate timeout
-    sandbox = Sandbox(timeout=timeout)
-    
     # Initialize checkpoint manager
     checkpoint_manager = CheckpointManager(checkpoint_dir="checkpoints_unified")
     
     # Create trainer
     trainer = UnifiedTrainer(
         model=model,
-        sandbox=sandbox,
         config=config,
         checkpoint_manager=checkpoint_manager
     )
