@@ -98,7 +98,7 @@ class LLMDiscriminator:
         temperature: float = 0.8,
         top_p: float = 0.9
     ) -> str:
-        """Generate adversarial test cases as Python code.
+        """Generate adversarial test cases as a Python list of tuples.
         
         Args:
             problem: Problem description
@@ -110,22 +110,22 @@ class LLMDiscriminator:
             top_p: Nucleus sampling parameter
             
         Returns:
-            Generated test cases as pytest functions
+            Generated test cases as a Python list of tuples: [(inputs, expected), ...]
         """
         if prompt_template is None:
-            prompt_template = """You are generating test cases for a coding problem and solution.
+            # Default template - should not normally be used (stages provide their own)
+            prompt_template = """Generate test cases as a Python list of tuples. Output ONLY the list.
 
 Problem: {problem}
 
-Generated Code:
+Code to test:
 {stage_output}
 
-Generate {num_tests} challenging test cases as pytest functions. Make them adversarial - try to find edge cases and potential bugs.
+Generate {num_tests} test cases in this format: [(input_args, expected_output), ...]
 
-Test Cases:
+DO NOT write pytest functions. DO NOT write solution code. ONLY the list.
+
 ```python
-import pytest
-
 """
         
         prompt = prompt_template.format(

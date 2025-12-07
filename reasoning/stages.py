@@ -27,38 +27,19 @@ Problem: {problem}
 Provide your informal reasoning - explain what the problem is asking, what approach you might take, and any initial thoughts. Be conversational and intuitive.
 
 Informal Reasoning:""",
-        discriminator_prompt_template="""You are generating test cases for a coding problem.
+        discriminator_prompt_template="""Generate test cases for this problem. Output ONLY a Python list of tuples.
 
-Problem: {problem}
+PROBLEM: {problem}
 
-Informal Reasoning:
+INFORMAL REASONING:
 {stage_output}
 
-Generate {num_tests} basic test cases as pytest functions. Focus on: happy path, empty input, single element.
+Generate {num_tests} basic test cases (happy path, empty input, single element).
 
-CRITICAL REQUIREMENTS:
-1. Write ONLY pytest test functions - no explanations
-2. Each test must start with "def test_"
-3. Use assert statements to check correctness
-4. Tests must be syntactically valid Python
-5. Import any needed modules at the top
-
-Example format:
-```python
-import pytest
-
-def test_basic():
-    assert function_name(input) == expected_output
-
-def test_empty():
-    assert function_name([]) == expected_empty_result
-```
-
-Write your test functions below:
+Format: [(input_args, expected_output), ...]
+DO NOT write pytest functions. DO NOT write solution code. ONLY the list.
 
 ```python
-import pytest
-
 """
     ),
     
@@ -80,27 +61,19 @@ Provide structured reasoning with:
 4. Edge cases to consider
 
 Structured Reasoning:""",
-        discriminator_prompt_template="""You are generating edge case test cases for a coding problem.
+        discriminator_prompt_template="""Generate test cases for this problem. Output ONLY a Python list of tuples.
 
-Problem: {problem}
+PROBLEM: {problem}
 
-Structured Reasoning:
+STRUCTURED REASONING:
 {stage_output}
 
-Generate {num_tests} edge case test cases as pytest functions. Focus on: boundary conditions, edge cases.
+Generate {num_tests} edge case test cases (boundary conditions, edge cases).
 
-CRITICAL REQUIREMENTS:
-1. Write ONLY pytest test functions - no explanations
-2. Each test must start with "def test_"
-3. Use assert statements to check correctness
-4. Tests must be syntactically valid Python
-5. Test edge cases and boundaries
-
-Write your test functions below:
+Format: [(input_args, expected_output), ...]
+DO NOT write pytest functions. DO NOT write solution code. ONLY the list.
 
 ```python
-import pytest
-
 """
     ),
     
@@ -118,27 +91,19 @@ Previous Reasoning:
 Write clear pseudocode for the solution. Use indentation and clear variable names.
 
 Pseudocode:""",
-        discriminator_prompt_template="""You are generating algorithmic test cases for a coding problem.
+        discriminator_prompt_template="""Generate test cases for this problem. Output ONLY a Python list of tuples.
 
-Problem: {problem}
+PROBLEM: {problem}
 
-Pseudocode:
+PSEUDOCODE:
 {stage_output}
 
-Generate {num_tests} test cases as pytest functions that test algorithmic correctness. Focus on: loop boundaries, off-by-one errors, corner cases.
+Generate {num_tests} algorithmic test cases (loop boundaries, off-by-one errors, corner cases).
 
-CRITICAL REQUIREMENTS:
-1. Write ONLY pytest test functions - no explanations
-2. Each test must start with "def test_"
-3. Use assert statements to check correctness
-4. Tests must be syntactically valid Python
-5. Try to find algorithmic bugs
-
-Write your test functions below:
+Format: [(input_args, expected_output), ...]
+DO NOT write pytest functions. DO NOT write solution code. ONLY the list.
 
 ```python
-import pytest
-
 """
     ),
     
@@ -161,27 +126,19 @@ List:
 5. Time/space complexity
 
 Constraints and Invariants:""",
-        discriminator_prompt_template="""You are generating constraint-testing test cases for a coding problem.
+        discriminator_prompt_template="""Generate test cases for this problem. Output ONLY a Python list of tuples.
 
-Problem: {problem}
+PROBLEM: {problem}
 
-Constraints and Invariants:
+CONSTRAINTS AND INVARIANTS:
 {stage_output}
 
-Generate {num_tests} test cases as pytest functions that verify constraints. Focus on: constraint violations, stress tests.
+Generate {num_tests} constraint-testing test cases (constraint violations, stress tests).
 
-CRITICAL REQUIREMENTS:
-1. Write ONLY pytest test functions - no explanations
-2. Each test must start with "def test_"
-3. Use assert statements to check correctness
-4. Tests must be syntactically valid Python
-5. Test constraint boundaries
-
-Write your test functions below:
+Format: [(input_args, expected_output), ...]
+DO NOT write pytest functions. DO NOT write solution code. ONLY the list.
 
 ```python
-import pytest
-
 """
     ),
     
