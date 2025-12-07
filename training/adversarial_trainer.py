@@ -401,7 +401,8 @@ class AdversarialTrainer:
             ])
             prompt = stage.generator_prompt_template.format(
                 problem=problem.description,
-                previous_stages=previous_text if stage_id > 1 else "None"
+                previous_stages=previous_text if stage_id > 1 else "None",
+                function_signature=problem.function_signature if stage_id == 5 else ""
             )
             old_log_probs = self.generator.get_log_probs(prompt, stage_output)
             
