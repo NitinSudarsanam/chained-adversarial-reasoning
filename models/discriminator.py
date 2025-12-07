@@ -114,14 +114,20 @@ class LLMDiscriminator:
         """
         if prompt_template is None:
             # Default template - should not normally be used (stages provide their own)
-            prompt_template = """Generate test cases as a Python list of tuples. Output ONLY the list.
+            prompt_template = """Generate test cases as a Python list of 2-tuples. Output ONLY the list.
 
 Problem: {problem}
 
 Code to test:
 {stage_output}
 
-Generate {num_tests} test cases in this format: [(input_args, expected_output), ...]
+Generate {num_tests} test cases in this format: [((arg1, arg2, ...), expected), ((arg1, arg2, ...), expected), ...]
+
+CRITICAL: Each element MUST be a 2-tuple where:
+- First element is a TUPLE of input arguments (even for single argument)
+- Second element is the expected output value
+
+Example: (([1, 2, 3],), 6)  <- note the comma after [1,2,3] to make it a tuple
 
 Use canonical encodings for data structures:
 - Linked lists as Python lists of values, e.g., [1, 2, 3] means 1->2->3

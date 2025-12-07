@@ -36,6 +36,16 @@ def _merge_baseline_tests(tests_list, baseline_tests):
     return merged
 
 
+def _pass_rate_minus_one(execution_result: ExecutionResult) -> float:
+    """Pass rate shifted so any failure yields a negative reward.
+
+    Returns pass_rate - 1.0; perfect pass -> 0.0, any failure -> negative.
+    """
+    if execution_result.num_total == 0:
+        return 0.0
+    return (execution_result.num_passed / execution_result.num_total) - 1.0
+
+
 def run_code_tests(code: str, tests: str, ground_truth: str, baseline_tests=None) -> Rewards:
     """Compute rewards by executing code and tests.
     
@@ -78,7 +88,7 @@ def run_code_tests(code: str, tests: str, ground_truth: str, baseline_tests=None
     valid_passed = len(set(valid_indices) & set(gen_result.passed_tests))
     valid_failed = len(valid_indices) - valid_passed
     
-    gen_reward = compute_generator_reward(gen_result_combined)
+    gen_reward = _pass_rate_minus_one(gen_result_combined)
     disc_reward = (len(valid_indices) * CORRECT_TEST) + (valid_passed * 0) + (valid_failed * CAUGHT_BUG) + (len(invalid_indices) * WRONG_TEST)
     
     print(f"num tests: {n}")
@@ -89,10 +99,8 @@ def run_code_tests(code: str, tests: str, ground_truth: str, baseline_tests=None
 
 
 def compute_generator_reward(execution_result: ExecutionResult) -> float:
-    """Generator reward = pass rate."""
-    if execution_result.num_total == 0:
-        return 0.0
-    return execution_result.num_passed / execution_result.num_total
+    """Generator reward: pass_rate - 1 so any failure is negative."""
+    return _pass_rate_minus_one(execution_result)
 
 
 def compute_discriminator_reward(
