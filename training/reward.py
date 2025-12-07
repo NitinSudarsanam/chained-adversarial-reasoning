@@ -10,9 +10,11 @@ class Rewards:
     """Rewards for both generator and discriminator."""
     generator_reward: float
     discriminator_reward: float
-    gen_result: ExecutionResult = None
-    val_result: ExecutionResult = None
-    gen_result_valid_only: ExecutionResult = None  # Only valid tests counted
+    gen_result: ExecutionResult = None  # Result on discriminator-generated tests
+    val_result: ExecutionResult = None  # Validation result (ground truth on disc tests)
+    gen_result_valid_only: ExecutionResult = None  # Only valid disc tests counted
+    gen_result_combined: ExecutionResult = None  # Result on disc + baseline tests
+    gen_result_baseline_only: ExecutionResult = None  # Result on baseline tests only
 
 
 def _safe_parse_tests(tests: str):
@@ -52,8 +54,9 @@ def run_code_tests(code: str, tests: str, ground_truth: str, baseline_tests=None
     
     Args:
         code: Generated code to test
-        tests: Test cases as string representation of list of tuples
+        tests: Test cases as string representation of list of tuples (discriminator-generated)
         ground_truth: Reference solution
+        baseline_tests: Optional baseline test cases
         
     Returns:
         Rewards object with generator and discriminator rewards plus execution results
@@ -64,16 +67,24 @@ def run_code_tests(code: str, tests: str, ground_truth: str, baseline_tests=None
     # Execute generated code with validity info from validation (for discriminator reward)
     gen_result = execute_tests(code, tests, val_result)
     
-    # Prepare combined test set for generator reward (add baseline tests only here)
+    # Execute baseline tests separately
+    gen_result_baseline_only = None
+    if baseline_tests:
+        baseline_tests_str = str(baseline_tests)
+        gen_result_baseline_only = execute_tests(code, baseline_tests_str)
+    
+    # Prepare combined test set for generator reward (add baseline tests)
     parsed_tests = _safe_parse_tests(tests)
     combined_tests = _merge_baseline_tests(parsed_tests, baseline_tests)
     combined_tests_str = str(combined_tests) if combined_tests else tests
     gen_result_combined = execute_tests(code, combined_tests_str)
     
     if gen_result.num_total == 0:
-        return Rewards(0, -1, gen_result_combined, val_result, gen_result)
+        # If no discriminator tests, use baseline-only result for valid_only
+        gen_result_valid_only = gen_result_baseline_only if gen_result_baseline_only else gen_result
+        return Rewards(0, -1, gen_result_combined, val_result, gen_result_valid_only, gen_result_combined, gen_result_baseline_only)
     
-    # Create filtered result with only valid tests
+    # Create filtered result with only valid discriminator tests
     valid_indices = [i for i, v in enumerate(gen_result.is_valid) if v]
     valid_passed = [i for i in valid_indices if i in gen_result.passed_tests]
     valid_failed = [i for i in valid_indices if i in gen_result.failed_tests]
@@ -90,25 +101,26 @@ def run_code_tests(code: str, tests: str, ground_truth: str, baseline_tests=None
     n = gen_result.num_total
     CORRECT_TEST = 0.01 / n
     WRONG_TEST = -1 / n
-    PASSED_TEST = 1 / n
-    FAILED_TEST = -1 / n
     CAUGHT_BUG = 1 / n
     
     # Compute rewards directly from execution indices
     invalid_indices = [i for i, v in enumerate(gen_result.is_valid) if not v]
     
-    # Rewards for valid tests
+    # Discriminator reward: valid tests are good, invalid are bad, catching bugs is good
     valid_passed_count = len(valid_passed)
     valid_failed_count = len(valid_failed)
-    
-    gen_reward = _pass_rate_minus_one(gen_result_combined)
     disc_reward = (len(valid_indices) * CORRECT_TEST) + (valid_passed_count * 0) + (valid_failed_count * CAUGHT_BUG) + (len(invalid_indices) * WRONG_TEST)
+    
+    # Generator reward: simple pass rate on combined tests (no -1 shift)
+    gen_reward = gen_result_combined.num_passed / gen_result_combined.num_total if gen_result_combined.num_total > 0 else 0.0
     
     print(f"num tests: {n}")
     print(f"valid tests: {len(valid_indices)}")
     print(f"passed valid tests: {valid_passed_count}")
+    print(f"baseline tests: {gen_result_baseline_only.num_total if gen_result_baseline_only else 0}")
+    print(f"combined tests: {gen_result_combined.num_total}")
     
-    return Rewards(gen_reward, disc_reward, gen_result_combined, val_result, gen_result_valid_only)
+    return Rewards(gen_reward, disc_reward, gen_result_combined, val_result, gen_result_valid_only, gen_result_combined, gen_result_baseline_only)
 
 
 def compute_generator_reward(execution_result: ExecutionResult) -> float:

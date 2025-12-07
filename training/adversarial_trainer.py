@@ -238,6 +238,12 @@ class AdversarialTrainer:
             
             # Log to file (per-step)
             self.global_step += 1
+            
+            # Extract baseline metrics
+            baseline_result = rewards.gen_result_baseline_only
+            num_baseline_tests = baseline_result.num_total if baseline_result else 0
+            num_baseline_passed = baseline_result.num_passed if baseline_result else 0
+            
             self.logger.log_step(
                 step=self.global_step,
                 stage_id=stage_id,
@@ -251,6 +257,8 @@ class AdversarialTrainer:
                 num_tests_total_gen=gen_result_valid.num_total,
                 num_tests_passed_val=val_result.num_passed,
                 num_tests_total_val=val_result.num_total,
+                num_baseline_tests=num_baseline_tests,
+                num_baseline_passed=num_baseline_passed,
                 num_tests_combined=gen_result_combined.num_total,
                 num_tests_passed_combined=gen_result_combined.num_passed,
                 loss=loss,
@@ -461,6 +469,12 @@ class AdversarialTrainer:
             
             # Log to file (per-step)
             self.global_step += 1
+            
+            # Extract baseline metrics
+            baseline_result = rewards.gen_result_baseline_only
+            num_baseline_tests = baseline_result.num_total if baseline_result else 0
+            num_baseline_passed = baseline_result.num_passed if baseline_result else 0
+            
             self.logger.log_step(
                 step=self.global_step,
                 stage_id=stage_id,
@@ -474,8 +488,10 @@ class AdversarialTrainer:
                 num_tests_total_gen=gen_result_valid.num_total,
                 num_tests_passed_val=val_result.num_passed,
                 num_tests_total_val=val_result.num_total,
-                num_tests_combined=gen_result.num_total,
-                num_tests_passed_combined=gen_result.num_passed,
+                num_baseline_tests=num_baseline_tests,
+                num_baseline_passed=num_baseline_passed,
+                num_tests_combined=gen_result_combined.num_total,
+                num_tests_passed_combined=gen_result_combined.num_passed,
                 loss=loss,
                 code_length=len(final_code),
                 has_syntax_error=has_syntax_error,
