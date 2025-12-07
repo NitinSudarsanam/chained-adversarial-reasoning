@@ -326,10 +326,6 @@ CRITICAL INSTRUCTIONS:
 
 5. NEVER emit a flat list where only the last element is the expected output (e.g., [a, b, c, expected]). Every list element MUST be a 2-tuple of (inputs_tuple, expected_output).
 
-6. Use canonical encodings for data structures when applicable:
-   - Linked lists as Python lists of values, e.g., [1, 2, 3] means 1->2->3
-   - Binary trees as level-order lists with None for missing children, e.g., [1, 2, 3, None, 4]
-
 7. All test cases MUST be valid Python.
    No missing parentheses, no trailing elements, no malformed lists, and no illegal board shapes.
 
