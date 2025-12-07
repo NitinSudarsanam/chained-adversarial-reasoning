@@ -126,8 +126,11 @@ Generate {num_tests} test cases in this format: [((arg1, arg2, ...), expected), 
 CRITICAL: Each element MUST be a 2-tuple where:
 - First element is a TUPLE of input arguments (even for single argument)
 - Second element is the expected output value
+- Arguments can be lists, dicts, strings, ints, etc.
 
-Example: (([1, 2, 3],), 6)  <- note the comma after [1,2,3] to make it a tuple
+Examples: 
+  (([1, 2, 3],), 6)  <- list as single arg, note trailing comma
+  [(([1], [2]), 3)]  <- two lists as args
 
 Use canonical encodings for data structures:
 - Linked lists as Python lists of values, e.g., [1, 2, 3] means 1->2->3
@@ -326,11 +329,14 @@ WRONG Examples (DO NOT OUTPUT):
 CORRECT Examples (DO OUTPUT):
    [(("a",), 0), (("b",), 1)]     <- single arg: tuple with trailing comma
    [(("a", "b"), 0)]              <- multiple args: proper tuple
-   [(([1, 2, 3],), 6)]             <- list as input: wrapped in tuple
+   [(([1, 2, 3],), 6)]             <- list as single arg: wrapped in tuple with comma
+   [(([1, 2], [3, 4]), True)]      <- two lists as args: both in tuple
 
 3. INPUT WRAPPING RULE:
    - If function takes 1 argument: wrap it as (arg,) with trailing comma
    - If function takes 2+ arguments: wrap as (arg1, arg2, ...)
+   - Arguments can be ANY Python type: int, str, list, dict, etc.
+   - Lists/dicts are valid arguments - just wrap them in the input tuple
    - Every input argument tuple MUST be inside parentheses in the list
 
 4. Each test case MUST be: [((inputs), expected), ((inputs), expected), ...]

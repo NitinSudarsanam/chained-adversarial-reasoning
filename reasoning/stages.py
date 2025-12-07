@@ -38,7 +38,8 @@ Generate {num_tests} basic test cases (happy path, empty input, single element).
 
 Format: [((arg1, arg2, ...), expected), ((arg1, arg2, ...), expected), ...]
 Each element MUST be a 2-tuple where first is tuple of inputs (even for single arg), second is expected output.
-Example: (([1, 2, 3],), 6)
+Arguments can be any type: int, str, list, dict, etc.
+Examples: (([1, 2, 3],), 6) or [(([1], [2]), True)]
 
 DO NOT write pytest functions. DO NOT write solution code. DO NOT write comments. ONLY the list.
 
@@ -75,7 +76,8 @@ Generate {num_tests} edge case test cases (boundary conditions, edge cases).
 
 Format: [((arg1, arg2, ...), expected), ((arg1, arg2, ...), expected), ...]
 Each element MUST be a 2-tuple where first is tuple of inputs (even for single arg), second is expected output.
-Example: (([1, 2, 3],), 6)
+Arguments can be any type: int, str, list, dict, etc.
+Examples: (([1, 2, 3],), 6) or [(([1], [2]), True)]
 
 DO NOT write pytest functions. DO NOT write solution code. DO NOT write comments. ONLY the list.
 
@@ -108,7 +110,8 @@ Generate {num_tests} algorithmic test cases (loop boundaries, off-by-one errors,
 
 Format: [((arg1, arg2, ...), expected), ((arg1, arg2, ...), expected), ...]
 Each element MUST be a 2-tuple where first is tuple of inputs (even for single arg), second is expected output.
-Example: (([1, 2, 3],), 6)
+Arguments can be any type: int, str, list, dict, etc.
+Examples: (([1, 2, 3],), 6) or [(([1], [2]), True)]
 
 DO NOT write pytest functions. DO NOT write solution code. DO NOT write comments. ONLY the list.
 
@@ -146,7 +149,8 @@ Generate {num_tests} constraint-testing test cases (constraint violations, stres
 
 Format: [((arg1, arg2, ...), expected), ((arg1, arg2, ...), expected), ...]
 Each element MUST be a 2-tuple where first is tuple of inputs (even for single arg), second is expected output.
-Example: (([1, 2, 3],), 6)
+Arguments can be any type: int, str, list, dict, etc.
+Examples: (([1, 2, 3],), 6) or [(([1], [2]), True)]
 
 DO NOT write pytest functions. DO NOT write solution code. DO NOT write comments. ONLY the list.
 
@@ -197,7 +201,8 @@ CODE TO TEST:
 Generate {num_tests} test cases in this exact format:
 [((arg1, arg2, ...), expected), ((arg1, arg2, ...), expected), ...]
 Each element MUST be a 2-tuple where first is tuple of inputs (even for single arg), second is expected output.
-Example: (([1, 2, 3],), 6)
+Arguments can be any type: int, str, list, dict, etc.
+Examples: (([1, 2, 3],), 6) or [(([1], [2]), True)]
 
 DO NOT write solution code. DO NOT write imports. DO NOT write comments. ONLY the test list.
 
