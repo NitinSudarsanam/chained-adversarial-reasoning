@@ -326,7 +326,7 @@ WRONG Examples (DO NOT OUTPUT):
 CORRECT Examples (DO OUTPUT):
    [(("a",), 0), (("b",), 1)]     <- single arg: tuple with trailing comma
    [(("a", "b"), 0)]              <- multiple args: proper tuple
-   [([1, 2, 3],), 6)]             <- list as input: wrapped in tuple
+   [(([1, 2, 3],), 6)]             <- list as input: wrapped in tuple
 
 3. INPUT WRAPPING RULE:
    - If function takes 1 argument: wrap it as (arg,) with trailing comma

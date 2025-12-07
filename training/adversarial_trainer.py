@@ -18,6 +18,7 @@ from training.rl_loop import (
 )
 from training.config import TrainingConfig
 from training.checkpoint_manager import CheckpointManager
+from training.training_logger import TrainingLogger
 
 
 class AdversarialTrainer:
@@ -28,7 +29,8 @@ class AdversarialTrainer:
         generator: LLMGenerator,
         discriminator: LLMDiscriminator,
         config: TrainingConfig,
-        checkpoint_manager: CheckpointManager = None
+        checkpoint_manager: CheckpointManager = None,
+        log_file: str = "training_log.json"
     ):
         """Initialize adversarial trainer.
         
@@ -37,11 +39,13 @@ class AdversarialTrainer:
             discriminator: Discriminator LLM
             config: Training configuration
             checkpoint_manager: Optional checkpoint manager for saving/loading
+            log_file: Path to training log file
         """
         self.generator = generator
         self.discriminator = discriminator
         self.config = config
         self.checkpoint_manager = checkpoint_manager or CheckpointManager()
+        self.logger = TrainingLogger(log_file)
         
         # Create optimizers
         self.gen_optimizer = create_optimizer(
@@ -55,6 +59,7 @@ class AdversarialTrainer:
         
         # Training state
         self.current_stage = 1
+        self.global_step = 0
         self.metrics_history = {
             'generator': [],
             'discriminator': []
@@ -176,15 +181,17 @@ class AdversarialTrainer:
             reward = rewards.discriminator_reward
             gen_result = rewards.gen_result
             val_result = rewards.val_result
+            gen_result_combined = rewards.gen_result
+            gen_result_valid = rewards.gen_result_valid_only
             total_reward += reward
             
-            # Calculate pass percentages
-            gen_pass_pct = (gen_result.num_passed / gen_result.num_total * 100) if gen_result.num_total > 0 else 0.0
+            # Calculate pass percentages (using valid tests only)
+            gen_pass_pct = (gen_result_valid.num_passed / gen_result_valid.num_total * 100) if gen_result_valid.num_total > 0 else 0.0
             val_pass_pct = (val_result.num_passed / val_result.num_total * 100) if val_result.num_total > 0 else 0.0
             
             # Log reward for this step with details
             print(f"\n  Step {step+1}/{n_steps} - Discriminator Reward: {reward:.4f}")
-            print(f"    Generator Pass Rate: {gen_result.num_passed}/{gen_result.num_total} ({gen_pass_pct:.1f}%)")
+            print(f"    Generator Pass Rate (valid tests): {gen_result_valid.num_passed}/{gen_result_valid.num_total} ({gen_pass_pct:.1f}%)")
             print(f"    Validation Pass Rate: {val_result.num_passed}/{val_result.num_total} ({val_pass_pct:.1f}%)")
             
             # Log generated code and tests for debugging
@@ -208,9 +215,49 @@ class AdversarialTrainer:
                 clip_epsilon=self.config.clip_epsilon
             )
             
+            loss = metrics.get('policy_loss', 0.0)
             if 'policy_loss' in metrics and not torch.isnan(torch.tensor(metrics['policy_loss'])):
                 total_loss += metrics['policy_loss']
                 num_updates += 1
+            
+            # Check for syntax errors
+            has_syntax_error = False
+            try:
+                compile(final_code, '<string>', 'exec')
+            except:
+                has_syntax_error = True
+            
+            # Parse test samples
+            import ast
+            test_samples = []
+            try:
+                parsed_tests = ast.literal_eval(accumulated_tests)
+                test_samples = [str(t) for t in parsed_tests[:5]]
+            except:
+                pass
+            
+            # Log to file
+            self.global_step += 1
+            self.logger.log_step(
+                step=self.global_step,
+                stage_id=stage_id,
+                model_type="discriminator",
+                problem_id=problem.id,
+                disc_reward=reward,
+                gen_reward=rewards.generator_reward,
+                num_tests_generated=gen_result.num_total,
+                num_tests_valid=gen_result_valid.num_total,
+                num_tests_passed_gen=gen_result_valid.num_passed,
+                num_tests_total_gen=gen_result_valid.num_total,
+                num_tests_passed_val=val_result.num_passed,
+                num_tests_total_val=val_result.num_total,
+                num_tests_combined=gen_result_combined.num_total,
+                num_tests_passed_combined=gen_result_combined.num_passed,
+                loss=loss,
+                code_length=len(final_code),
+                has_syntax_error=has_syntax_error,
+                test_samples=test_samples
+            )
         
         # Calculate average over successful steps only
         num_successful = n_steps - num_skipped
@@ -316,15 +363,17 @@ class AdversarialTrainer:
                 baseline_tests=problem.baseline_tests,
             )
             reward = rewards.generator_reward
-            result = rewards.gen_result
+            gen_result = rewards.gen_result
+            val_result = rewards.val_result
+            gen_result_valid = rewards.gen_result_valid_only
             total_reward += reward
             
-            # Calculate pass percentage
-            pass_pct = (result.num_passed / result.num_total * 100) if result.num_total > 0 else 0.0
+            # Calculate pass percentage (using valid tests only)
+            pass_pct = (gen_result_valid.num_passed / gen_result_valid.num_total * 100) if gen_result_valid.num_total > 0 else 0.0
             
             # Log reward for this step with details
             print(f"\n  Step {step+1}/{n_steps} - Generator Reward: {reward:.4f}")
-            print(f"    Test Pass Rate: {result.num_passed}/{result.num_total} ({pass_pct:.1f}%)")
+            print(f"    Test Pass Rate (valid tests): {gen_result_valid.num_passed}/{gen_result_valid.num_total} ({pass_pct:.1f}%)")
             
             # Log generated code and tests for debugging
             print(f"  Generated Code (length={len(final_code)}):")
@@ -347,9 +396,49 @@ class AdversarialTrainer:
                 clip_epsilon=self.config.clip_epsilon
             )
             
+            loss = metrics.get('policy_loss', 0.0)
             if 'policy_loss' in metrics and not torch.isnan(torch.tensor(metrics['policy_loss'])):
                 total_loss += metrics['policy_loss']
                 num_updates += 1
+            
+            # Check for syntax errors
+            has_syntax_error = False
+            try:
+                compile(final_code, '<string>', 'exec')
+            except:
+                has_syntax_error = True
+            
+            # Parse test samples
+            import ast
+            test_samples = []
+            try:
+                parsed_tests = ast.literal_eval(accumulated_tests)
+                test_samples = [str(t) for t in parsed_tests[:5]]
+            except:
+                pass
+            
+            # Log to file
+            self.global_step += 1
+            self.logger.log_step(
+                step=self.global_step,
+                stage_id=stage_id,
+                model_type="generator",
+                problem_id=problem.id,
+                disc_reward=rewards.discriminator_reward,
+                gen_reward=reward,
+                num_tests_generated=gen_result.num_total,
+                num_tests_valid=gen_result_valid.num_total,
+                num_tests_passed_gen=gen_result_valid.num_passed,
+                num_tests_total_gen=gen_result_valid.num_total,
+                num_tests_passed_val=val_result.num_passed,
+                num_tests_total_val=val_result.num_total,
+                num_tests_combined=gen_result.num_total,
+                num_tests_passed_combined=gen_result.num_passed,
+                loss=loss,
+                code_length=len(final_code),
+                has_syntax_error=has_syntax_error,
+                test_samples=test_samples
+            )
         
         # Calculate average over successful steps only
         num_successful = n_steps - num_skipped
