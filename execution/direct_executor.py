@@ -147,8 +147,15 @@ def execute_tests(code: str, tests_str: str, validation_result: 'ExecutionResult
     is_valid = []
     
     for idx, test in enumerate(tests):
-        args = list(test[:-1])
-        expected = test[-1]
+        # Detect format: strict 2-tuple ((inputs), expected) vs flat (arg1, arg2, ..., expected)
+        if len(test) == 2 and isinstance(test[0], (tuple, list)):
+            # Strict format: ((inputs), expected)
+            args = list(test[0])
+            expected = test[1]
+        else:
+            # Flat format: (arg1, arg2, ..., expected)
+            args = list(test[:-1])
+            expected = test[-1]
 
         # Convert inputs based on annotations when possible
         for i, arg in enumerate(args):
