@@ -6,7 +6,6 @@ from pathlib import Path
 
 from models.generator import LLMGenerator
 from models.discriminator import LLMDiscriminator
-from sandbox.sandbox import Sandbox
 from data.problem_dataset import load_problems
 from training.adversarial_trainer import AdversarialTrainer
 from training.config import TrainingConfig
@@ -139,9 +138,6 @@ def main():
         )
         print()
         
-        # Initialize sandbox
-        sandbox = Sandbox(timeout=config.sandbox_timeout)
-        
         # Initialize checkpoint manager
         checkpoint_manager = CheckpointManager(checkpoint_dir=args.checkpoint_dir)
         
@@ -150,7 +146,6 @@ def main():
         trainer = AdversarialTrainer(
             generator=generator,
             discriminator=discriminator,
-            sandbox=sandbox,
             config=config,
             checkpoint_manager=checkpoint_manager
         )
