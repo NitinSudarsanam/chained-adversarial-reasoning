@@ -131,17 +131,9 @@ class AdversarialTrainer:
                 problem, stage_id
             )
             
-            if not final_code or not final_code.strip():
-                num_skipped += 1
-                print(f"  ⚠ Skipping discriminator step {step+1}/{n_steps}: empty code generated")
-                print(f"     Reasoning chain length: {len(reasoning_chain)}, Problem: {problem.id}")
-                continue
-            
-            if not accumulated_tests or not accumulated_tests.strip():
-                num_skipped += 1
-                print(f"  ⚠ Skipping discriminator step {step+1}/{n_steps}: empty tests generated")
-                print(f"     Final code length: {len(final_code)}, Problem: {problem.id}")
-                continue
+            # NOTE: We can still train discriminator even if generator code is empty
+            # because the discriminator's reward is based on test validity, not on generator success
+            # The discriminator should still be penalized for producing invalid tests
             
             # Get the tests generated at THIS stage for log probs
             stage_output = reasoning_chain[stage_id - 1] if stage_id <= len(reasoning_chain) else final_code
@@ -171,10 +163,14 @@ class AdversarialTrainer:
             
             old_log_probs = self.discriminator.get_log_probs(prompt, stage_tests)
             
+            # Use ground truth code if generator produced nothing, for validity checking
+            test_code = final_code if final_code and final_code.strip() else problem.reference_solution
+            
             # Compute reward using run_code_tests
+            # NOTE: Even if test_code is empty, we still get validity feedback
             rewards = run_code_tests(
-                final_code,
-                accumulated_tests,
+                test_code,
+                accumulated_tests if accumulated_tests and accumulated_tests.strip() else "[]",
                 problem.reference_solution,
                 baseline_tests=problem.baseline_tests,
             )
@@ -388,11 +384,8 @@ class AdversarialTrainer:
                 print(f"     Reasoning chain length: {len(reasoning_chain)}, Problem: {problem.id}")
                 continue
             
-            if not accumulated_tests or not accumulated_tests.strip():
-                num_skipped += 1
-                print(f"  ⚠ Skipping generator step {step+1}/{n_steps}: empty tests generated")
-                print(f"     Final code length: {len(final_code)}, Problem: {problem.id}")
-                continue
+            # NOTE: We can still train generator even if no tests were generated
+            # because the generator reward is based on pass rate (0.0 if no tests)
             
             # Get old log probs for THIS stage's generation
             stage = get_stage(stage_id)
@@ -409,10 +402,12 @@ class AdversarialTrainer:
             )
             old_log_probs = self.generator.get_log_probs(prompt, stage_output)
             
-            # Execute ALL accumulated tests against final code
+            # Execute accumulated tests against final code
+            # Use empty list if no tests were generated, generator still gets penalized (reward=0)
+            test_str = accumulated_tests if accumulated_tests and accumulated_tests.strip() else "[]"
             rewards = run_code_tests(
                 final_code,
-                accumulated_tests,
+                test_str,
                 problem.reference_solution,
                 baseline_tests=problem.baseline_tests,
             )

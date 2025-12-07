@@ -80,9 +80,12 @@ def run_code_tests(code: str, tests: str, ground_truth: str, baseline_tests=None
     gen_result_combined = execute_tests(code, combined_tests_str)
     
     if gen_result.num_total == 0:
-        # If no discriminator tests, use baseline-only result for valid_only
+        # If no discriminator tests, still penalize discriminator for lack of test generation
+        # and give generator neutral reward (not punished for something it didn't produce)
         gen_result_valid_only = gen_result_baseline_only if gen_result_baseline_only else gen_result
-        return Rewards(0, -1, gen_result_combined, val_result, gen_result_valid_only, gen_result_combined, gen_result_baseline_only)
+        # Discriminator gets -0.5 for not generating valid tests
+        # Generator gets 0.0 (neutral) since it's not its responsibility to generate tests
+        return Rewards(0.0, -0.5, gen_result_combined, val_result, gen_result_valid_only, gen_result_combined, gen_result_baseline_only)
     
     # Create filtered result with only valid discriminator tests
     valid_indices = [i for i, v in enumerate(gen_result.is_valid) if v]
@@ -106,10 +109,23 @@ def run_code_tests(code: str, tests: str, ground_truth: str, baseline_tests=None
     # Compute rewards directly from execution indices
     invalid_indices = [i for i, v in enumerate(gen_result.is_valid) if not v]
     
-    # Discriminator reward: valid tests are good, invalid are bad, catching bugs is good
+    # Discriminator reward breakdown:
+    # - Generating valid tests: +0.1 per valid test (normalized)
+    # - Generating invalid tests: -0.5 per invalid test (normalized) 
+    # - Catching actual bugs (test fails on generated, passes on ground truth): +0.5 per bug caught
     valid_passed_count = len(valid_passed)
     valid_failed_count = len(valid_failed)
-    disc_reward = (len(valid_indices) * CORRECT_TEST) + (valid_passed_count * 0) + (valid_failed_count * CAUGHT_BUG) + (len(invalid_indices) * WRONG_TEST)
+    num_valid = len(valid_indices)
+    num_invalid = len(invalid_indices)
+    
+    # Discriminator wants: (1) valid tests, (2) tests that catch bugs
+    disc_reward = 0.0
+    if num_valid > 0:
+        disc_reward += (num_valid / n) * 0.4  # Reward for generating valid tests (max 0.4)
+    if num_invalid > 0:
+        disc_reward -= (num_invalid / n) * 0.6  # Penalty for invalid tests (max -0.6)
+    if valid_failed_count > 0:
+        disc_reward += (valid_failed_count / n) * 0.5  # Bonus for catching bugs (max 0.5)
     
     # Clamp discriminator reward to [-1, 1] to keep advantages bounded
     disc_reward = max(-1.0, min(1.0, disc_reward))
@@ -118,10 +134,13 @@ def run_code_tests(code: str, tests: str, ground_truth: str, baseline_tests=None
     gen_reward = gen_result_combined.num_passed / gen_result_combined.num_total if gen_result_combined.num_total > 0 else 0.0
     
     print(f"num tests: {n}")
-    print(f"valid tests: {len(valid_indices)}")
+    print(f"valid tests: {num_valid}")
+    print(f"invalid tests: {num_invalid}")
     print(f"passed valid tests: {valid_passed_count}")
+    print(f"failed valid tests (bugs caught): {valid_failed_count}")
     print(f"baseline tests: {gen_result_baseline_only.num_total if gen_result_baseline_only else 0}")
     print(f"combined tests: {gen_result_combined.num_total}")
+    print(f"disc_reward: {disc_reward:.4f}, gen_reward: {gen_reward:.4f}")
     
     return Rewards(gen_reward, disc_reward, gen_result_combined, val_result, gen_result_valid_only, gen_result_combined, gen_result_baseline_only)
 
