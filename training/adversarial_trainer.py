@@ -167,7 +167,12 @@ class AdversarialTrainer:
             old_log_probs = self.discriminator.get_log_probs(prompt, stage_tests)
             
             # Compute reward using run_code_tests
-            rewards = run_code_tests(final_code, accumulated_tests, problem.reference_solution)
+            rewards = run_code_tests(
+                final_code,
+                accumulated_tests,
+                problem.reference_solution,
+                baseline_tests=problem.baseline_tests,
+            )
             reward = rewards.discriminator_reward
             gen_result = rewards.gen_result
             val_result = rewards.val_result
@@ -303,7 +308,12 @@ class AdversarialTrainer:
             old_log_probs = self.generator.get_log_probs(prompt, stage_output)
             
             # Execute ALL accumulated tests against final code
-            rewards = run_code_tests(final_code, accumulated_tests, problem.reference_solution)
+            rewards = run_code_tests(
+                final_code,
+                accumulated_tests,
+                problem.reference_solution,
+                baseline_tests=problem.baseline_tests,
+            )
             reward = rewards.generator_reward
             result = rewards.gen_result
             total_reward += reward

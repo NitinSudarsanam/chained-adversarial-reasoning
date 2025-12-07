@@ -1,5 +1,6 @@
 """Reward computation for adversarial RL training."""
 
+import ast
 from dataclasses import dataclass
 from execution.direct_executor import execute_tests, ExecutionResult
 
@@ -13,7 +14,26 @@ class Rewards:
     val_result: ExecutionResult = None
 
 
-def run_code_tests(code: str, tests: str, ground_truth: str) -> Rewards:
+def _safe_parse_tests(tests: str):
+    """Parse test list string into a Python object; return [] on failure."""
+    try:
+        return ast.literal_eval(tests)
+    except Exception:
+        return []
+
+
+def _merge_baseline_tests(tests_list, baseline_tests):
+    """Append baseline tests (list/tuple form) to generated tests list."""
+    if not baseline_tests:
+        return tests_list
+    merged = list(tests_list)
+    for t in baseline_tests:
+        if isinstance(t, (list, tuple)) and len(t) >= 2:
+            merged.append(tuple(t))
+    return merged
+
+
+def run_code_tests(code: str, tests: str, ground_truth: str, baseline_tests=None) -> Rewards:
     """Compute rewards by executing code and tests.
     
     Args:
@@ -24,14 +44,20 @@ def run_code_tests(code: str, tests: str, ground_truth: str) -> Rewards:
     Returns:
         Rewards object with generator and discriminator rewards plus execution results
     """
-    # Execute ground truth first to validate tests
+    # Execute ground truth first to validate discriminator-generated tests
     val_result = execute_tests(ground_truth, tests)
     
-    # Execute generated code with validity info from validation
+    # Execute generated code with validity info from validation (for discriminator reward)
     gen_result = execute_tests(code, tests, val_result)
     
+    # Prepare combined test set for generator reward (add baseline tests only here)
+    parsed_tests = _safe_parse_tests(tests)
+    combined_tests = _merge_baseline_tests(parsed_tests, baseline_tests)
+    combined_tests_str = str(combined_tests) if combined_tests else tests
+    gen_result_combined = execute_tests(code, combined_tests_str)
+    
     if gen_result.num_total == 0:
-        return Rewards(0, -1, gen_result, val_result)
+        return Rewards(0, -1, gen_result_combined, val_result)
     
     # Reward constants (normalized by test count)
     n = gen_result.num_total
@@ -49,14 +75,14 @@ def run_code_tests(code: str, tests: str, ground_truth: str) -> Rewards:
     valid_passed = len(set(valid_indices) & set(gen_result.passed_tests))
     valid_failed = len(valid_indices) - valid_passed
     
-    gen_reward = (valid_passed * PASSED_TEST) + (valid_failed * FAILED_TEST)
+    gen_reward = compute_generator_reward(gen_result_combined)
     disc_reward = (len(valid_indices) * CORRECT_TEST) + (valid_passed * 0) + (valid_failed * CAUGHT_BUG) + (len(invalid_indices) * WRONG_TEST)
     
     print(f"num tests: {n}")
     print(f"valid tests: {len(valid_indices)}")
     print(f"passed valid tests: {valid_passed}")
     
-    return Rewards(gen_reward, disc_reward, gen_result, val_result)
+    return Rewards(gen_reward, disc_reward, gen_result_combined, val_result)
 
 
 def compute_generator_reward(execution_result: ExecutionResult) -> float:

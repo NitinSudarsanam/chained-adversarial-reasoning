@@ -37,7 +37,7 @@ INFORMAL REASONING:
 Generate {num_tests} basic test cases (happy path, empty input, single element).
 
 Format: [(input_args, expected_output), ...]
-DO NOT write pytest functions. DO NOT write solution code. ONLY the list.
+DO NOT write pytest functions. DO NOT write solution code. DO NOT write comments. ONLY the list.
 
 ```python
 """
@@ -71,7 +71,7 @@ STRUCTURED REASONING:
 Generate {num_tests} edge case test cases (boundary conditions, edge cases).
 
 Format: [(input_args, expected_output), ...]
-DO NOT write pytest functions. DO NOT write solution code. ONLY the list.
+DO NOT write pytest functions. DO NOT write solution code. DO NOT write comments. ONLY the list.
 
 ```python
 """
@@ -101,7 +101,7 @@ PSEUDOCODE:
 Generate {num_tests} algorithmic test cases (loop boundaries, off-by-one errors, corner cases).
 
 Format: [(input_args, expected_output), ...]
-DO NOT write pytest functions. DO NOT write solution code. ONLY the list.
+DO NOT write pytest functions. DO NOT write solution code. DO NOT write comments. ONLY the list.
 
 ```python
 """
@@ -136,7 +136,7 @@ CONSTRAINTS AND INVARIANTS:
 Generate {num_tests} constraint-testing test cases (constraint violations, stress tests).
 
 Format: [(input_args, expected_output), ...]
-DO NOT write pytest functions. DO NOT write solution code. ONLY the list.
+DO NOT write pytest functions. DO NOT write solution code. DO NOT write comments. ONLY the list.
 
 ```python
 """
@@ -185,7 +185,7 @@ CODE TO TEST:
 Generate {num_tests} test cases in this exact format:
 [(input1, input2, ..., expected_output), ...]
 
-DO NOT write solution code. DO NOT write imports. ONLY the test list.
+DO NOT write solution code. DO NOT write imports. DO NOT write comments. ONLY the test list.
 
 ```python
 """

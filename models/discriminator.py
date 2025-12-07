@@ -123,7 +123,11 @@ Code to test:
 
 Generate {num_tests} test cases in this format: [(input_args, expected_output), ...]
 
-DO NOT write pytest functions. DO NOT write solution code. ONLY the list.
+Use canonical encodings for data structures:
+- Linked lists as Python lists of values, e.g., [1, 2, 3] means 1->2->3
+- Binary trees as level-order lists with None for missing children, e.g., [1, 2, 3, None, 4]
+
+DO NOT write pytest functions. DO NOT write solution code. DO NOT write comments. ONLY the list.
 
 ```python
 """
@@ -294,22 +298,26 @@ DO NOT write pytest functions. DO NOT write solution code. ONLY the list.
         self.model.eval()
         
         # Format prompt using chat template for instruction-tuned models
-        if hasattr(self.tokenizer, 'apply_chat_template') and self.tokenizer.chat_template:
-            system_prompt = """You are a TEST CASE GENERATOR. Your ONLY job is to generate test cases in a specific format.
+                if hasattr(self.tokenizer, 'apply_chat_template') and self.tokenizer.chat_template:
+                        system_prompt = """You are a TEST CASE GENERATOR. Your ONLY job is to generate test cases in a specific format.
 
 CRITICAL INSTRUCTIONS:
 1. You will receive a problem description and some code
 2. Generate test cases as a Python list of tuples: [(input_args, expected_output), ...]
 3. DO NOT write solution code
-4. DO NOT write import statements  
-5. DO NOT write explanations
-6. ONLY output the Python list inside ```python ``` markers
+4. DO NOT write import statements
+5. DO NOT write comments
+6. DO NOT write explanations
+7. ONLY output the Python list inside ```python ``` markers
+8. Use canonical encodings for data structures:
+   - Linked lists as Python lists of values, e.g., [1, 2, 3] means 1->2->3
+   - Binary trees as level-order lists with None for missing children, e.g., [1, 2, 3, None, 4]
 
 FORMAT EXAMPLE:
 ```python
 [
-  (arg1, arg2, expected),
-  (arg1, arg2, expected)
+    (arg1, arg2, expected),
+    (arg1, arg2, expected)
 ]
 ```
 
@@ -457,5 +465,47 @@ Follow the user's instructions exactly."""
         
         # Fix common syntax errors
         code = self._fix_common_syntax_errors(code)
-        
-        return code.strip()
+
+        # Try to extract the first well-formed list and validate
+        cleaned = self._extract_first_list(code)
+        if not cleaned:
+            return ""
+
+        validated = self._validate_list_syntax(cleaned)
+        return validated
+
+    def _extract_first_list(self, text: str) -> str:
+        """Extract the first bracket-balanced list substring."""
+        start = text.find('[')
+        if start == -1:
+            return ""
+        depth = 0
+        for idx in range(start, len(text)):
+            ch = text[idx]
+            if ch == '[':
+                depth += 1
+            elif ch == ']':
+                depth -= 1
+                if depth == 0:
+                    return text[start:idx+1].strip()
+        return ""
+
+    def _validate_list_syntax(self, text: str) -> str:
+        """Return text if it literal-evals to a list, else empty string."""
+        import ast
+        # Strip python fences if present
+        if text.startswith("```"):
+            text = text.strip('`')
+        try:
+            obj = ast.literal_eval(text)
+        except Exception:
+            return ""
+        if not isinstance(obj, list):
+            return ""
+        # Ensure elements look tuple/list-like with at least 2 items
+        for item in obj:
+            if not isinstance(item, (list, tuple)):
+                return ""
+            if len(item) < 2:
+                return ""
+        return text.strip()

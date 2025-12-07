@@ -1,6 +1,7 @@
 """Direct code execution using ast.literal_eval - simple and fast."""
 
 import ast
+import inspect
 
 
 class ExecutionResult:
@@ -37,13 +38,105 @@ def execute_tests(code: str, tests_str: str, validation_result: 'ExecutionResult
     if len(tests) == 0:
         return ExecutionResult(0, 0, [], [], [])
     
-    # Extract function from code
+    # Extract function from code and helpers for canonical structures
     try:
         namespace = {}
         exec(code, namespace)
         callables = [obj for obj in namespace.values() if callable(obj)]
         func = callables[-1]
-    except:
+
+        # Provide lightweight defaults if user code did not define them
+        Node = namespace.get("Node")
+
+        if "ListNode" not in namespace:
+            if Node is not None:
+                ListNode = Node
+            else:
+                class ListNode:
+                    def __init__(self, val=0, next=None):
+                        self.val = val
+                        self.next = next
+        else:
+            ListNode = namespace["ListNode"]
+
+        if "TreeNode" not in namespace:
+            if Node is not None:
+                TreeNode = Node
+            else:
+                class TreeNode:
+                    def __init__(self, val=0, left=None, right=None):
+                        self.val = val
+                        self.left = left
+                        self.right = right
+        else:
+            TreeNode = namespace["TreeNode"]
+
+        def build_linked_list(values):
+            if ListNode is None or not isinstance(values, (list, tuple)):
+                return values
+            dummy = ListNode(0)
+            cur = dummy
+            for v in values:
+                cur.next = ListNode(v)
+                cur = cur.next
+            return dummy.next
+
+        def linked_list_to_list(node):
+            if ListNode is None or node is None:
+                return node
+            out = []
+            cur = node
+            while cur:
+                out.append(cur.val)
+                cur = cur.next
+            return out
+
+        def build_tree(values):
+            if TreeNode is None or not isinstance(values, (list, tuple)):
+                return values
+            if not values:
+                return None
+            nodes = [None if v is None else TreeNode(v) for v in values]
+            kids = nodes[::-1]
+            root = kids.pop()
+            for node in nodes:
+                if node:
+                    if kids:
+                        node.left = kids.pop()
+                    if kids:
+                        node.right = kids.pop()
+            return root
+
+        def tree_to_list(root):
+            if TreeNode is None or root is None:
+                return root
+            out = []
+            queue = [root]
+            while queue:
+                node = queue.pop(0)
+                if node:
+                    out.append(node.val)
+                    queue.append(node.left)
+                    queue.append(node.right)
+                else:
+                    out.append(None)
+            # Trim trailing None values for cleanliness
+            while out and out[-1] is None:
+                out.pop()
+            return out
+
+        def normalize_value(val):
+            if ListNode is not None and isinstance(val, (ListNode, Node if 'Node' in locals() else tuple())):
+                return linked_list_to_list(val)
+            if TreeNode is not None and isinstance(val, (TreeNode, Node if 'Node' in locals() else tuple())):
+                return tree_to_list(val)
+            return val
+
+        sig = inspect.signature(func)
+        params = list(sig.parameters.values())
+        ret_ann = sig.return_annotation
+
+    except Exception:
         is_valid = [i in validation_result.passed_tests for i in range(len(tests))] if validation_result else []
         return ExecutionResult(0, len(tests), [], list(range(len(tests))), is_valid)
     
@@ -54,8 +147,24 @@ def execute_tests(code: str, tests_str: str, validation_result: 'ExecutionResult
     is_valid = []
     
     for idx, test in enumerate(tests):
-        args = test[:-1]
+        args = list(test[:-1])
         expected = test[-1]
+
+        # Convert inputs based on annotations when possible
+        for i, arg in enumerate(args):
+            if i < len(params):
+                ann = params[i].annotation
+                if ListNode is not None and (ann is ListNode or getattr(ann, "__name__", "") in {"ListNode", "Node"} or str(ann) in {"ListNode", "Node"}):
+                    args[i] = build_linked_list(arg)
+                elif TreeNode is not None and (ann is TreeNode or getattr(ann, "__name__", "") in {"TreeNode", "Node"} or str(ann) in {"TreeNode", "Node"}):
+                    args[i] = build_tree(arg)
+
+        # Convert expected if return annotation hints at structures
+        if ret_ann is not inspect.Signature.empty:
+            if ListNode is not None and (ret_ann is ListNode or getattr(ret_ann, "__name__", "") in {"ListNode", "Node"} or str(ret_ann) in {"ListNode", "Node"}):
+                expected = build_linked_list(expected)
+            elif TreeNode is not None and (ret_ann is TreeNode or getattr(ret_ann, "__name__", "") in {"TreeNode", "Node"} or str(ret_ann) in {"TreeNode", "Node"}):
+                expected = build_tree(expected)
         
         # Mark validity if validation result provided
         if validation_result:
@@ -63,7 +172,9 @@ def execute_tests(code: str, tests_str: str, validation_result: 'ExecutionResult
         
         try:
             result = func(*args)
-            if result == expected:
+            result_norm = normalize_value(result)
+            expected_norm = normalize_value(expected)
+            if result_norm == expected_norm:
                 num_passed += 1
                 passed_tests.append(idx)
             else:
