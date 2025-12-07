@@ -27,7 +27,7 @@ Problem: {problem}
 Provide your informal reasoning - explain what the problem is asking, what approach you might take, and any initial thoughts. Be conversational and intuitive.
 
 Informal Reasoning:""",
-        discriminator_prompt_template="""Generate test cases for this problem. Output ONLY a Python list of tuples.
+        discriminator_prompt_template="""Generate test cases for this problem. Output ONLY a Python list of 2-tuples.
 
 PROBLEM: {problem}
 
@@ -36,7 +36,10 @@ INFORMAL REASONING:
 
 Generate {num_tests} basic test cases (happy path, empty input, single element).
 
-Format: [(input_args, expected_output), ...]
+Format: [((arg1, arg2, ...), expected), ((arg1, arg2, ...), expected), ...]
+Each element MUST be a 2-tuple where first is tuple of inputs (even for single arg), second is expected output.
+Example: (([1, 2, 3],), 6)
+
 DO NOT write pytest functions. DO NOT write solution code. DO NOT write comments. ONLY the list.
 
 ```python
@@ -61,7 +64,7 @@ Provide structured reasoning with:
 4. Edge cases to consider
 
 Structured Reasoning:""",
-        discriminator_prompt_template="""Generate test cases for this problem. Output ONLY a Python list of tuples.
+        discriminator_prompt_template="""Generate test cases for this problem. Output ONLY a Python list of 2-tuples.
 
 PROBLEM: {problem}
 
@@ -70,7 +73,10 @@ STRUCTURED REASONING:
 
 Generate {num_tests} edge case test cases (boundary conditions, edge cases).
 
-Format: [(input_args, expected_output), ...]
+Format: [((arg1, arg2, ...), expected), ((arg1, arg2, ...), expected), ...]
+Each element MUST be a 2-tuple where first is tuple of inputs (even for single arg), second is expected output.
+Example: (([1, 2, 3],), 6)
+
 DO NOT write pytest functions. DO NOT write solution code. DO NOT write comments. ONLY the list.
 
 ```python
@@ -91,7 +97,7 @@ Previous Reasoning:
 Write clear pseudocode for the solution. Use indentation and clear variable names.
 
 Pseudocode:""",
-        discriminator_prompt_template="""Generate test cases for this problem. Output ONLY a Python list of tuples.
+        discriminator_prompt_template="""Generate test cases for this problem. Output ONLY a Python list of 2-tuples.
 
 PROBLEM: {problem}
 
@@ -100,7 +106,10 @@ PSEUDOCODE:
 
 Generate {num_tests} algorithmic test cases (loop boundaries, off-by-one errors, corner cases).
 
-Format: [(input_args, expected_output), ...]
+Format: [((arg1, arg2, ...), expected), ((arg1, arg2, ...), expected), ...]
+Each element MUST be a 2-tuple where first is tuple of inputs (even for single arg), second is expected output.
+Example: (([1, 2, 3],), 6)
+
 DO NOT write pytest functions. DO NOT write solution code. DO NOT write comments. ONLY the list.
 
 ```python
@@ -126,7 +135,7 @@ List:
 5. Time/space complexity
 
 Constraints and Invariants:""",
-        discriminator_prompt_template="""Generate test cases for this problem. Output ONLY a Python list of tuples.
+        discriminator_prompt_template="""Generate test cases for this problem. Output ONLY a Python list of 2-tuples.
 
 PROBLEM: {problem}
 
@@ -135,7 +144,10 @@ CONSTRAINTS AND INVARIANTS:
 
 Generate {num_tests} constraint-testing test cases (constraint violations, stress tests).
 
-Format: [(input_args, expected_output), ...]
+Format: [((arg1, arg2, ...), expected), ((arg1, arg2, ...), expected), ...]
+Each element MUST be a 2-tuple where first is tuple of inputs (even for single arg), second is expected output.
+Example: (([1, 2, 3],), 6)
+
 DO NOT write pytest functions. DO NOT write solution code. DO NOT write comments. ONLY the list.
 
 ```python
@@ -175,7 +187,7 @@ YOUR RESPONSE:
 # ```python
 # """
 ,
-        discriminator_prompt_template="""Generate test cases for this problem. Output ONLY a Python list of tuples, nothing else.
+        discriminator_prompt_template="""Generate test cases for this problem. Output ONLY a Python list of 2-tuples, nothing else.
 
 PROBLEM: {problem}
 
@@ -183,7 +195,9 @@ CODE TO TEST:
 {stage_output}
 
 Generate {num_tests} test cases in this exact format:
-[(input1, input2, ..., expected_output), ...]
+[((arg1, arg2, ...), expected), ((arg1, arg2, ...), expected), ...]
+Each element MUST be a 2-tuple where first is tuple of inputs (even for single arg), second is expected output.
+Example: (([1, 2, 3],), 6)
 
 DO NOT write solution code. DO NOT write imports. DO NOT write comments. ONLY the test list.
 
