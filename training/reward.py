@@ -111,7 +111,10 @@ def run_code_tests(code: str, tests: str, ground_truth: str, baseline_tests=None
     valid_failed_count = len(valid_failed)
     disc_reward = (len(valid_indices) * CORRECT_TEST) + (valid_passed_count * 0) + (valid_failed_count * CAUGHT_BUG) + (len(invalid_indices) * WRONG_TEST)
     
-    # Generator reward: simple pass rate on combined tests (no -1 shift)
+    # Clamp discriminator reward to [-1, 1] to keep advantages bounded
+    disc_reward = max(-1.0, min(1.0, disc_reward))
+    
+    # Generator reward: simple pass rate on combined tests (already bounded to [0, 1])
     gen_reward = gen_result_combined.num_passed / gen_result_combined.num_total if gen_result_combined.num_total > 0 else 0.0
     
     print(f"num tests: {n}")

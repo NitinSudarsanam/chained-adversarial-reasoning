@@ -216,6 +216,9 @@ class AdversarialTrainer:
             )
             
             loss = metrics.get('policy_loss', 0.0)
+            grad_norm = metrics.get('grad_norm', 0.0)
+            num_losses = metrics.get('num_losses', 0)
+            print(f"    Discriminator Loss: {loss:.6f} | Grad Norm: {grad_norm:.6f} | Losses computed: {num_losses}")
             if 'policy_loss' in metrics and not torch.isnan(torch.tensor(metrics['policy_loss'])):
                 total_loss += metrics['policy_loss']
                 num_updates += 1
@@ -449,6 +452,9 @@ class AdversarialTrainer:
             )
             
             loss = metrics.get('policy_loss', 0.0)
+            grad_norm = metrics.get('grad_norm', 0.0)
+            num_losses = metrics.get('num_losses', 0)
+            print(f"    Generator Loss: {loss:.6f} | Grad Norm: {grad_norm:.6f} | Losses computed: {num_losses}")
             if 'policy_loss' in metrics and not torch.isnan(torch.tensor(metrics['policy_loss'])):
                 total_loss += metrics['policy_loss']
                 num_updates += 1
