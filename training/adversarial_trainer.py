@@ -574,7 +574,19 @@ class AdversarialTrainer:
                 accumulated_tests.append(tests)
         
         final_code = reasoning_chain[-1] if reasoning_chain else ""
-        all_tests = "\n\n".join(accumulated_tests)
+        
+        # Merge all test lists into one valid Python list
+        # Can't use "\n\n".join because ast.literal_eval needs single valid expression
+        merged_tests = []
+        for test_str in accumulated_tests:
+            try:
+                import ast
+                parsed = ast.literal_eval(test_str)
+                if isinstance(parsed, list):
+                    merged_tests.extend(parsed)
+            except:
+                pass
+        all_tests = str(merged_tests) if merged_tests else ""
         
         # Cache the result for reuse
         result = (reasoning_chain, final_code, all_tests)
