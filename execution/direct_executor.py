@@ -42,8 +42,30 @@ def execute_tests(code: str, tests_str: str, validation_result: 'ExecutionResult
     try:
         namespace = {}
         exec(code, namespace)
-        callables = [obj for obj in namespace.values() if callable(obj)]
-        func = callables[-1]
+
+        # Prefer free functions; fall back to Solution.method wrapper
+        func = None
+        sig = None
+
+        func_candidates = [obj for obj in namespace.values() if inspect.isfunction(obj)]
+        if func_candidates:
+            func = func_candidates[-1]
+            sig = inspect.signature(func)
+        else:
+            solution_cls = namespace.get("Solution")
+            if solution_cls and inspect.isclass(solution_cls):
+                method_names = [name for name, obj in inspect.getmembers(solution_cls, predicate=inspect.isfunction) if not name.startswith("__")]
+                if method_names:
+                    method_name = method_names[-1]
+                    method_obj = getattr(solution_cls, method_name)
+                    sig = inspect.signature(method_obj)
+
+                    # Create wrapper that preserves method_name via closure
+                    solution_instance = solution_cls()
+                    func = lambda *args, **kwargs: getattr(solution_instance, method_name)(*args, **kwargs)
+
+        if func is None or sig is None:
+            raise RuntimeError("No callable function or Solution method found")
 
         # Provide lightweight defaults if user code did not define them
         Node = namespace.get("Node")
@@ -132,7 +154,6 @@ def execute_tests(code: str, tests_str: str, validation_result: 'ExecutionResult
                 return tree_to_list(val)
             return val
 
-        sig = inspect.signature(func)
         params = list(sig.parameters.values())
         ret_ann = sig.return_annotation
 
