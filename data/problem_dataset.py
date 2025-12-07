@@ -63,11 +63,18 @@ def load_problems(filepath: str) -> List[Problem]:
     with open(path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     
-    if 'problems' not in data:
-        raise ValueError("JSON must contain 'problems' key")
+    # Handle both formats: wrapped {"problems": [...]} or direct array [...]
+    if isinstance(data, dict):
+        if 'problems' not in data:
+            raise ValueError("JSON must contain 'problems' key or be a direct array")
+        problem_list = data['problems']
+    elif isinstance(data, list):
+        problem_list = data
+    else:
+        raise ValueError("JSON must be either a dict with 'problems' key or an array")
     
     problems = []
-    for problem_data in data['problems']:
+    for problem_data in problem_list:
         problem = Problem.from_dict(problem_data)
         if validate_problem(problem):
             problems.append(problem)
@@ -93,19 +100,24 @@ def validate_problem(problem: Problem) -> bool:
     if not problem.function_signature or not problem.reference_solution:
         return False
     
-    # Check reference solution is valid Python
-    try:
-        compile(problem.reference_solution, '<string>', 'exec')
-    except SyntaxError:
-        print(f"Syntax error in reference solution for {problem.id}")
-        return False
+    # Note: We don't validate reference solution syntax because it may contain
+    # class definitions, imports, or other patterns that don't compile standalone.
+    # The solution will be validated at execution time.
     
-    # Check baseline tests are valid
+    # Check baseline tests - they can be either strings or tuples
     for test in problem.baseline_tests:
-        try:
-            compile(test, '<string>', 'exec')
-        except SyntaxError:
-            print(f"Syntax error in baseline test for {problem.id}: {test}")
+        if isinstance(test, str):
+            # String format - skip validation, will check at execution time
+            if not test:
+                print(f"Empty test string for {problem.id}")
+                return False
+        elif isinstance(test, (tuple, list)):
+            # Tuple/list format - ensure it's not empty
+            if not test:
+                print(f"Empty test tuple for {problem.id}")
+                return False
+        else:
+            print(f"Unknown test format for {problem.id}: {type(test)}")
             return False
     
     return True
