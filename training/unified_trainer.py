@@ -329,6 +329,8 @@ class UnifiedTrainer:
         # Compute rewards using run_code_tests
         rewards = run_code_tests(final_code, accumulated_tests, problem.reference_solution)
         reward = rewards.discriminator_reward
+        gen_result = rewards.gen_result
+        val_result = rewards.val_result
         
         # Calculate pass percentages
         gen_pass_pct = (gen_result.num_passed / gen_result.num_total * 100) if gen_result.num_total > 0 else 0.0

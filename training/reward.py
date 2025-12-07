@@ -9,6 +9,8 @@ class Rewards:
     """Rewards for both generator and discriminator."""
     generator_reward: float
     discriminator_reward: float
+    gen_result: ExecutionResult = None
+    val_result: ExecutionResult = None
 
 
 def run_code_tests(code: str, tests: str, ground_truth: str) -> Rewards:
@@ -20,7 +22,7 @@ def run_code_tests(code: str, tests: str, ground_truth: str) -> Rewards:
         ground_truth: Reference solution
         
     Returns:
-        Rewards object with generator and discriminator rewards
+        Rewards object with generator and discriminator rewards plus execution results
     """
     # Execute ground truth first to validate tests
     val_result = execute_tests(ground_truth, tests)
@@ -29,7 +31,7 @@ def run_code_tests(code: str, tests: str, ground_truth: str) -> Rewards:
     gen_result = execute_tests(code, tests, val_result)
     
     if gen_result.num_total == 0:
-        return Rewards(0, -1)
+        return Rewards(0, -1, gen_result, val_result)
     
     # Reward constants (normalized by test count)
     n = gen_result.num_total
@@ -54,7 +56,7 @@ def run_code_tests(code: str, tests: str, ground_truth: str) -> Rewards:
     print(f"valid tests: {len(valid_indices)}")
     print(f"passed valid tests: {valid_passed}")
     
-    return Rewards(gen_reward, disc_reward)
+    return Rewards(gen_reward, disc_reward, gen_result, val_result)
 
 
 def compute_generator_reward(execution_result: ExecutionResult) -> float:

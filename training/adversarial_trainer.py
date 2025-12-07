@@ -169,6 +169,8 @@ class AdversarialTrainer:
             # Compute reward using run_code_tests
             rewards = run_code_tests(final_code, accumulated_tests, problem.reference_solution)
             reward = rewards.discriminator_reward
+            gen_result = rewards.gen_result
+            val_result = rewards.val_result
             total_reward += reward
             
             # Calculate pass percentages
@@ -188,30 +190,6 @@ class AdversarialTrainer:
             print(f"  Generated Tests (length={len(accumulated_tests)}):")
             tests_preview = accumulated_tests[:300].replace('\n', '\n    ')
             print(f"    {tests_preview}{'...' if len(accumulated_tests) > 300 else ''}")
-            
-            print(f"  Execution Results:")
-            print(f"    Timeout: {gen_result.timed_out}")
-            print(f"    Total errors: {len(gen_result.errors)}")
-            
-            # Parse stderr for actual pytest errors (skip warnings)
-            if gen_result.stderr:
-                stderr_lines = gen_result.stderr.split('\n')
-                
-                # Find the actual error section (after "ERRORS" or "FAILURES")
-                in_error_section = False
-                error_lines = []
-                for line in stderr_lines:
-                    if 'ERRORS' in line or 'FAILURES' in line or 'SyntaxError' in line:
-                        in_error_section = True
-                    if in_error_section and line.strip():
-                        error_lines.append(line)
-                        if len(error_lines) >= 10:  # Show first 10 lines of actual error
-                            break
-                
-                if error_lines:
-                    print(f"    Actual errors:")
-                    for line in error_lines[:10]:
-                        print(f"      {line}")
             
             # Train step
             metrics = train_step(
@@ -325,10 +303,9 @@ class AdversarialTrainer:
             old_log_probs = self.generator.get_log_probs(prompt, stage_output)
             
             # Execute ALL accumulated tests against final code
-            result = self.sandbox.execute_tests(final_code, accumulated_tests)
-            
-            # Compute reward based on ALL tests
-            reward = compute_generator_reward(result)
+            rewards = run_code_tests(final_code, accumulated_tests, problem.reference_solution)
+            reward = rewards.generator_reward
+            result = rewards.gen_result
             total_reward += reward
             
             # Calculate pass percentage
@@ -346,30 +323,6 @@ class AdversarialTrainer:
             print(f"  Generated Tests (length={len(accumulated_tests)}):")
             tests_preview = accumulated_tests[:300].replace('\n', '\n    ')
             print(f"    {tests_preview}{'...' if len(accumulated_tests) > 300 else ''}")
-            
-            print(f"  Execution Results:")
-            print(f"    Timeout: {result.timed_out}")
-            print(f"    Total errors: {len(result.errors)}")
-            
-            # Parse stderr for actual pytest errors (skip warnings)
-            if result.stderr:
-                stderr_lines = result.stderr.split('\n')
-                
-                # Find the actual error section (after "ERRORS" or "FAILURES")
-                in_error_section = False
-                error_lines = []
-                for line in stderr_lines:
-                    if 'ERRORS' in line or 'FAILURES' in line or 'SyntaxError' in line:
-                        in_error_section = True
-                    if in_error_section and line.strip():
-                        error_lines.append(line)
-                        if len(error_lines) >= 10:  # Show first 10 lines of actual error
-                            break
-                
-                if error_lines:
-                    print(f"    Actual errors:")
-                    for line in error_lines[:10]:
-                        print(f"      {line}")
             
             # Train step
             metrics = train_step(

@@ -257,15 +257,35 @@ import pytest
         # Format prompt using chat template for instruction-tuned models
         if hasattr(self.tokenizer, 'apply_chat_template') and self.tokenizer.chat_template:
             system_prompt = """You are an expert in Software Testing. You have been tasked with generating test cases for Leetcode-style questions in Python.
-
-You will be given a problem description and a function signature. You should construct your test case suite as a Python list of test cases, where each test case is a Python tuple, where the first n-1 elements represent the inputs to the function, and the final element represents the expected result.
-
+You will be given a problem description and a function signature. You should construct your test case suite as a Python lists of test cases, where each test case is a Python tuple, where the first n - 1 element represent the inputs to the function, and the final element represents the expected result.
 The test cases that you generate will be run against a candidate implementation, and your test suite should be as thorough as possible. You will achieve an award for catching edge cases.
 
 IMPORTANT:
-- You should ONLY output the test cases as a Python list. Do not attempt to solve the problem yourself.
+- You should ONLY output the test cases. Do not attempt to solve the problem yourself.
 - Your test cases MUST not fail against a ground-truth solution. If they do, you will incur a large penalty.
-- Output ONLY the Python list in a code block, nothing else."""
+
+
+Here is an example response you would give:
+
+PROBLEM DESCRIPTION: Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
+
+You may assume that each input would have exactly one solution, and you may not use the same element twice.
+
+You can return the answer in any order.
+
+
+FUNCTION SIGNATURE: def twoSum(nums: List[int], target: int) -> List[int]:
+
+
+YOUR RESPONSE:
+```python
+[
+  ([5, 3, 1, 0], 4, [1, 2]),
+  ([5, 3, 6, 2, 4, 56, 1], 6, [3, 4]),
+  ([8, 3, 2, 6, 2, 7, 8], 13, [3, 5])
+]
+```
+"""
 
             messages = [
                 {"role": "system", "content": system_prompt},

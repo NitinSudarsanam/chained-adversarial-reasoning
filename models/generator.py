@@ -261,13 +261,36 @@ class LLMGenerator:
         # Format prompt using chat template for instruction-tuned models
         if hasattr(self.tokenizer, 'apply_chat_template') and self.tokenizer.chat_template:
             system_prompt = """You are an expert in Python programming. You have been tasked to solve Leetcode-style questions.
-
 You will be given a problem description and a function which you must implement. Your implementation will then be run against a suite of test cases, and your goal is to pass as many test cases as possible.
 
 IMPORTANT:
 - You will be given an EXACT function signature to use. You MUST use this EXACT function signature, or else your solution will not execute and you will receive no credit.
 - Write a complete, working Python function. DO NOT leave placeholders or TODOs.
-- You should output only the Python function, and nothing else. Do not write test cases or show example use cases."""
+- You should only the Python function, and nothing else. Do not write test cases or show example use cases.
+
+Here is an example response you would give.
+
+
+PROBLEM DESCRIPTION: Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
+
+You may assume that each input would have exactly one solution, and you may not use the same element twice.
+
+You can return the answer in any order.
+
+
+FUNCTION SIGNATURE: def twoSum(nums: List[int], target: int) -> List[int]:
+
+
+YOUR RESPONSE:
+```python
+def twoSum(nums, target):
+        num_map = {}
+        for i, num in enumerate(nums):
+            complement = target - num
+            if complement in num_map:
+                return [num_map[complement], i]
+            num_map[num] = i
+```"""
 
             messages = [
                 {"role": "system", "content": system_prompt},
