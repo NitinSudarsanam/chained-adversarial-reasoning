@@ -363,7 +363,12 @@ YOUR RESPONSE:
         return text.strip()
     
     def _fix_common_syntax_errors(self, code: str) -> str:
-        """Fix common syntax errors made by LLMs.
+        """Fix common syntax errors in generated test lists.
+        
+        The discriminator generates simple Python lists like:
+        [([1, 2], 3), ([4, 5], 9)]
+        
+        This only needs minimal cleanup.
         
         Args:
             code: Code with potential syntax errors
@@ -373,53 +378,12 @@ YOUR RESPONSE:
         """
         import re
         
-        # Fix: "for xiny:" -> "for x in y:"
-        code = re.sub(r'\bfor\s+(\w+)in(\w+):', r'for \1 in \2:', code)
-        
-        # Fix: "If" -> "if", "Else" -> "else", "Elif" -> "elif"
-        code = re.sub(r'\bIf\b', 'if', code)
-        code = re.sub(r'\bElse\b', 'else', code)
-        code = re.sub(r'\bElif\b', 'elif', code)
-        
-        # Fix: "float = '-inf'" -> "float('-inf')"
-        code = re.sub(r"float\s*=\s*['\"](-?inf)['\"]", r"float('\1')", code)
-        code = re.sub(r"int\s*=\s*['\"](\d+)['\"]", r"int('\1')", code)
-        
-        # Fix: "x =  y" -> "x = y" (remove extra spaces)
-        code = re.sub(r'=\s{2,}', '= ', code)
-
-        code = re.sub(r'\s+.', '.', code)
+        # Fix: Remove extra spaces inside brackets
         code = re.sub(r'\[\s+', '[', code)
         code = re.sub(r'\s+\]', ']', code)
         
-        # Fix: "assert x==y" -> "assert x == y"
-        code = re.sub(r'assert\s+(\w+)==(\w+)', r'assert \1 == \2', code)
-        
-        # Fix: missing spaces in operators
-        code = re.sub(r'(\w+)=([^=])', r'\1 = \2', code)
-        code = re.sub(r'(\w+)\+=(\w+)', r'\1 += \2', code)
-        code = re.sub(r'(\w+)>([^=])', r'\1 > \2', code)
-        code = re.sub(r'(\w+)<([^=])', r'\1 < \2', code)
-        
-        # Fix: "max(x,y" -> "max(x, y" (add space after comma)
-        code = re.sub(r',(\w)', r', \1', code)
-        
-        # Fix: "function-name" -> "function_name" (hyphens to underscores in identifiers)
-        # Fix when it's a function call (followed by parenthesis)
-        code = re.sub(r'(\w+)-(\w+)\s*\(', r'\1_\2(', code)
-        # Also fix multi-word function names like "two-sum-array"
-        while re.search(r'(\w+)-(\w+)', code):
-            code = re.sub(r'(\w+)-(\w+)', r'\1_\2', code)
-        
-        # Fix: "maxSub Array" -> "maxSubArray" (remove spaces in function names)
-        code = re.sub(r'(\w+)\s+([A-Z]\w+)\s*\(', r'\1\2(', code)
-        
-        # Fix: "def  test_" -> "def test_" (remove extra spaces after def)
-        code = re.sub(r'def\s{2,}test_', 'def test_', code)
-        
-        # Fix common typos in function names within the same test
-        # This is tricky - we'll try to find the most common function name and use it
-        # For now, just remove obvious typos
+        # Fix: Ensure space after commas (for readability)
+        code = re.sub(r',(\S)', r', \1', code)
         
         return code
     
@@ -427,57 +391,36 @@ YOUR RESPONSE:
         """Sanitize generated test code.
         
         Args:
-            code: Raw generated test code
+            code: Raw generated test code (should be a Python list of tuples)
             
         Returns:
-            Sanitized test code (list of tuples format)
+            Sanitized test code
         """
-        # The new format is a Python list of tuples, not pytest functions
-        # Just extract the list from the code
-        
-        # Remove explanatory text before the list
+        # Find the first opening bracket - that's where the list starts
         lines = code.split('\n')
         first_bracket_idx = -1
         for i, line in enumerate(lines):
-            if line.strip().startswith('['):
+            if '[' in line:
                 first_bracket_idx = i
                 break
         
-        if first_bracket_idx > 0:
+        if first_bracket_idx >= 0:
+            # Start from the line with the bracket
             lines = lines[first_bracket_idx:]
             code = '\n'.join(lines)
         
+        # Find the last closing bracket - that's where the list ends
+        last_bracket_idx = -1
+        for i in range(len(code) - 1, -1, -1):
+            if code[i] == ']':
+                last_bracket_idx = i
+                break
+        
+        if last_bracket_idx >= 0:
+            # Trim everything after the closing bracket
+            code = code[:last_bracket_idx + 1]
+        
         # Fix common syntax errors
         code = self._fix_common_syntax_errors(code)
-        
-        # The code should now be a Python list of tuples
-        # No need for pytest import
-        
-        # Remove incomplete test functions at the end
-        lines = code.split('\n')
-        
-        # Find last complete test function
-        last_complete = len(lines)
-        in_function = False
-        function_indent = 0
-        
-        for i, line in enumerate(lines):
-            if line.strip().startswith('def test_'):
-                in_function = True
-                function_indent = len(line) - len(line.lstrip())
-            elif in_function and line.strip() and not line.startswith(' ' * (function_indent + 1)):
-                # Function ended
-                in_function = False
-                last_complete = i
-        
-        # If we're still in a function at the end, check if it looks complete
-        if in_function:
-            # Look for at least one assert or pass statement
-            function_lines = lines[-(len(lines) - last_complete):]
-            has_content = any('assert' in line or 'pass' in line for line in function_lines)
-            if not has_content:
-                lines = lines[:last_complete]
-        
-        code = '\n'.join(lines)
         
         return code.strip()
