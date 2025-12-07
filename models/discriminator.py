@@ -316,40 +316,45 @@ CRITICAL INSTRUCTIONS:
    - A function signature
    - (Optionally) reference code
 
-2. You MUST generate test cases as a Python list of 2-tuples:
-   [
-       (input_args_tuple, expected_output),
-       (input_args_tuple, expected_output),
-       ...
-   ]
+2. REQUIRED FORMAT - Python list of 2-tuples where EACH element is: ((inputs_tuple), expected_output)
 
-3. "input_args_tuple" MUST be a tuple, even if the function takes only one argument.
-   Example: ([ [1,0],[0,1] ],)  <- note the trailing comma
+WRONG Examples (DO NOT OUTPUT):
+   [("a", 0), ("b", 1)]           <- inputs not in tuple, flat pairs
+   [(("a"), 0), (("b"), 1)]       <- inputs without trailing comma
+   [("a", "b", expected)]         <- more than 2 elements per item
 
-4. Each test case MUST contain EXACTLY two elements:
-   - The tuple of input arguments
-   - The expected output value
+CORRECT Examples (DO OUTPUT):
+   [(("a",), 0), (("b",), 1)]     <- single arg: tuple with trailing comma
+   [(("a", "b"), 0)]              <- multiple args: proper tuple
+   [([1, 2, 3],), 6)]             <- list as input: wrapped in tuple
 
-5. NEVER emit a flat list where only the last element is the expected output (e.g., [a, b, c, expected]). Every list element MUST be a 2-tuple of (inputs_tuple, expected_output).
+3. INPUT WRAPPING RULE:
+   - If function takes 1 argument: wrap it as (arg,) with trailing comma
+   - If function takes 2+ arguments: wrap as (arg1, arg2, ...)
+   - Every input argument tuple MUST be inside parentheses in the list
 
-7. All test cases MUST be valid Python.
-   No missing parentheses, no trailing elements, no malformed lists, and no illegal board shapes.
+4. Each test case MUST be: [((inputs), expected), ((inputs), expected), ...]
+   - First parentheses ( ): tuple containing input arguments
+   - Second parentheses ( ): start of 2-element tuple
+   - There MUST be 2 elements per tuple in the list
 
-8. DO NOT:
+5. All test cases MUST be valid Python.
+   No missing parentheses, no trailing elements, no malformed lists.
+
+6. DO NOT:
    - Write solution code
    - Write imports
    - Write comments
    - Write explanations
-   - Output anything except the list inside ```python ``` markers
+   - Output anything except the list inside ```python``` markers
 
-9. Your entire response MUST be:
+7. Your entire response MUST be:
 
 ```python
-[
-    ((...), expected_output),
-    ((...), expected_output)
-]
-```"""
+[(inputs_tuple, expected_value), (inputs_tuple, expected_value)]
+```
+
+Where inputs_tuple is itself a tuple with all input arguments."""
 
             messages = [
                 {"role": "system", "content": system_prompt},
@@ -519,7 +524,20 @@ CRITICAL INSTRUCTIONS:
         return ""
 
     def _validate_list_syntax(self, text: str) -> str:
-        """Return text if it literal-evals to a list, else empty string."""
+        """Parse list and salvage valid test cases in strict format: [((inputs), expected), ...]
+        
+        Attempts to fix common malformations:
+        1. Extra parentheses: (("cb", 1,), "bc") -> (("cb", 1), "bc")
+        2. Mixed tuple/list: ("", 0, "") -> (("",), "")
+        3. Mismatched parens: ((",), 10,) -> skip (too corrupted)
+        
+        Keeps only tuples where:
+        - Exactly 2 elements: (inputs_tuple, expected)
+        - First element is a tuple/list
+        - Second element is the output
+        
+        Returns reconstructed list with only valid/fixable tuples, or empty string if none valid.
+        """
         import ast
         # Strip python fences if present
         if text.startswith("```"):
@@ -530,10 +548,56 @@ CRITICAL INSTRUCTIONS:
             return ""
         if not isinstance(obj, list):
             return ""
-        # Ensure elements look tuple/list-like with at least 2 items
+        
+        # Salvage and fix valid tuples
+        valid_tuples = []
         for item in obj:
-            if not isinstance(item, (list, tuple)):
-                return ""
-            if len(item) < 2:
-                return ""
-        return text.strip()
+            fixed = self._try_fix_test_tuple(item)
+            if fixed is not None:
+                valid_tuples.append(fixed)
+        
+        # If we salvaged at least one valid tuple, return it as a list
+        if valid_tuples:
+            return str(valid_tuples).strip()
+        
+        return ""
+    
+    def _try_fix_test_tuple(self, item):
+        """Try to fix and validate a single test tuple.
+        
+        Args:
+            item: A list/tuple element that should be a test case
+            
+        Returns:
+            Fixed (inputs_tuple, expected) if valid, None otherwise
+        """
+        # Not a tuple/list at all - skip
+        if not isinstance(item, (list, tuple)):
+            return None
+        
+        # Already perfect: 2-tuple with tuple/list as first element
+        if len(item) == 2 and isinstance(item[0], (tuple, list)):
+            return tuple(item)  # Normalize to tuple
+        
+        # Has 2+ elements, might be misformatted
+        if len(item) >= 2:
+            # Case: (("cb", 1,), "bc") - first element is tuple with extra items
+            # Try to extract: first item is inputs (as tuple), last item is expected
+            first_elem = item[0]
+            
+            # If first element is tuple/list, use it as inputs
+            if isinstance(first_elem, (tuple, list)):
+                # Last element is expected output
+                expected = item[-1]
+                return (tuple(first_elem) if isinstance(first_elem, list) else first_elem, expected)
+            
+            # Case: ("", 0, "") - flat list, assume first is input, last is expected
+            # Convert first element to tuple for inputs
+            if len(item) >= 2:
+                inputs_tuple = (item[0],)  # Wrap single input in tuple
+                expected = item[-1]  # Last element is expected
+                return (inputs_tuple, expected)
+        
+        # Only 1 element or empty - skip
+        return None
+
