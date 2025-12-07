@@ -204,7 +204,7 @@ class AdversarialTrainer:
             tests_preview = accumulated_tests[:300].replace('\n', '\n    ')
             print(f"    {tests_preview}{'...' if len(accumulated_tests) > 300 else ''}")
             
-            # Train step
+            # Train step immediately
             metrics = train_step(
                 model=self.discriminator,
                 optimizer=self.disc_optimizer,
@@ -437,7 +437,7 @@ class AdversarialTrainer:
             tests_preview = accumulated_tests[:300].replace('\n', '\n    ')
             print(f"    {tests_preview}{'...' if len(accumulated_tests) > 300 else ''}")
             
-            # Train step
+            # Train step immediately
             metrics = train_step(
                 model=self.generator,
                 optimizer=self.gen_optimizer,
