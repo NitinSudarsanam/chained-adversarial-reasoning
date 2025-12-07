@@ -189,8 +189,9 @@ class AdversarialTrainer:
             
             # Log generated code and tests for debugging
             print(f"  Generated Code (length={len(final_code)}):")
-            code_preview = final_code[:300].replace('\n', '\n    ')
-            print(f"    {code_preview}{'...' if len(final_code) > 300 else ''}")
+            code_lines = final_code.split('\n')
+            for line in code_lines:
+                print(f"    {line}")
             
             print(f"  Generated Tests (length={len(accumulated_tests)}):")
             tests_preview = accumulated_tests[:300].replace('\n', '\n    ')
@@ -327,8 +328,9 @@ class AdversarialTrainer:
             
             # Log generated code and tests for debugging
             print(f"  Generated Code (length={len(final_code)}):")
-            code_preview = final_code[:300].replace('\n', '\n    ')
-            print(f"    {code_preview}{'...' if len(final_code) > 300 else ''}")
+            code_lines = final_code.split('\n')
+            for line in code_lines:
+                print(f"    {line}")
             
             print(f"  Generated Tests (length={len(accumulated_tests)}):")
             tests_preview = accumulated_tests[:300].replace('\n', '\n    ')
