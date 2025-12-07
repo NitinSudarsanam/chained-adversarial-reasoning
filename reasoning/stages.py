@@ -218,23 +218,18 @@ YOUR RESPONSE:
 # ```python
 # """
 ,
-        discriminator_prompt_template="""PROBLEM DESCRIPTION: {problem}
+        discriminator_prompt_template="""Generate test cases for this problem. Output ONLY a Python list of tuples, nothing else.
+
+PROBLEM: {problem}
 
 CODE TO TEST:
 {stage_output}
 
-Generate {num_tests} test cases as a Python list of tuples. Each tuple should contain the function inputs followed by the expected output.
+Generate {num_tests} test cases in this exact format:
+[(input1, input2, ..., expected_output), ...]
 
-Example format:
-```python
-[
-    (input1, input2, expected_output),
-    (input1, input2, expected_output),
-    (input1, input2, expected_output)
-]
-```
+DO NOT write solution code. DO NOT write imports. ONLY the test list.
 
-YOUR RESPONSE:
 ```python
 """
     )

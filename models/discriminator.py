@@ -134,14 +134,53 @@ import pytest
             num_tests=num_tests
         )
         
+        # Debug: Print first 500 chars of prompt to verify correctness
+        print(f"\n[DEBUG] Discriminator prompt (first 500 chars):")
+        print(prompt[:500])
+        print("...")
+        
         # Generate
         output = self._generate(prompt, max_new_tokens, temperature, top_p)
+        
+        # Debug: Show what was generated
+        print(f"\n[DEBUG] Raw discriminator output (first 300 chars):")
+        print(output[:300])
+        
+        # Validate output - if it looks like solution code, reject it
+        if self._looks_like_solution_code(output):
+            print(f"\n⚠️  WARNING: Discriminator generated solution code instead of tests!")
+            print(f"   Returning empty string to skip this example.")
+            return ""
         
         # Sanitize and extract code
         output = self._extract_code_from_markdown(output)
         output = self._sanitize_test_code(output)
         
         return output
+    
+    def _looks_like_solution_code(self, output: str) -> bool:
+        """Check if output looks like solution code instead of test cases.
+        
+        Args:
+            output: Generated output
+            
+        Returns:
+            True if it looks like solution code
+        """
+        # Check for function definitions (should not be present in test lists)
+        if 'def ' in output and '[' not in output[:100]:  # Function before any list
+            return True
+        
+        # Check for class definitions
+        if 'class ' in output:
+            return True
+        
+        # Check for common solution patterns
+        solution_keywords = ['while True:', 'for i in range', 'return result', 'if __name__']
+        if any(keyword in output for keyword in solution_keywords) and '[' not in output[:200]:
+            return True
+        
+        return False
     
     def generate_critique(
         self,
@@ -256,36 +295,25 @@ import pytest
         
         # Format prompt using chat template for instruction-tuned models
         if hasattr(self.tokenizer, 'apply_chat_template') and self.tokenizer.chat_template:
-            system_prompt = """You are an expert in Software Testing. You have been tasked with generating test cases for Leetcode-style questions in Python.
-You will be given a problem description and a function signature. You should construct your test case suite as a Python lists of test cases, where each test case is a Python tuple, where the first n - 1 element represent the inputs to the function, and the final element represents the expected result.
-The test cases that you generate will be run against a candidate implementation, and your test suite should be as thorough as possible. You will achieve an award for catching edge cases.
+            system_prompt = """You are a TEST CASE GENERATOR. Your ONLY job is to generate test cases in a specific format.
 
-IMPORTANT:
-- You should ONLY output the test cases. Do not attempt to solve the problem yourself.
-- Your test cases MUST not fail against a ground-truth solution. If they do, you will incur a large penalty.
+CRITICAL INSTRUCTIONS:
+1. You will receive a problem description and some code
+2. Generate test cases as a Python list of tuples: [(input_args, expected_output), ...]
+3. DO NOT write solution code
+4. DO NOT write import statements  
+5. DO NOT write explanations
+6. ONLY output the Python list inside ```python ``` markers
 
-
-Here is an example response you would give:
-
-PROBLEM DESCRIPTION: Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
-
-You may assume that each input would have exactly one solution, and you may not use the same element twice.
-
-You can return the answer in any order.
-
-
-FUNCTION SIGNATURE: def twoSum(nums: List[int], target: int) -> List[int]:
-
-
-YOUR RESPONSE:
+FORMAT EXAMPLE:
 ```python
 [
-  ([5, 3, 1, 0], 4, [1, 2]),
-  ([5, 3, 6, 2, 4, 56, 1], 6, [3, 4]),
-  ([8, 3, 2, 6, 2, 7, 8], 13, [3, 5])
+  (arg1, arg2, expected),
+  (arg1, arg2, expected)
 ]
 ```
-"""
+
+Follow the user's instructions exactly."""
 
             messages = [
                 {"role": "system", "content": system_prompt},
@@ -301,12 +329,17 @@ YOUR RESPONSE:
         
         inputs = self.tokenizer(formatted_prompt, return_tensors="pt", truncation=True, max_length=4096).to(self.device)
         
+        # Force the model to start with '[' by adding it to the prompt
+        # This ensures it generates a list, not solution code
+        bracket_token = self.tokenizer.encode('[', add_special_tokens=False)
+        
         # Clamp temperature to safe range to avoid numerical issues
         temperature = max(0.1, min(2.0, temperature))
         top_p = max(0.1, min(1.0, top_p))
         
         with torch.no_grad():
             try:
+                # Add opening bracket to force list format
                 outputs = self.model.generate(
                     **inputs,
                     max_new_tokens=max_new_tokens,
@@ -315,8 +348,10 @@ YOUR RESPONSE:
                     do_sample=True,
                     pad_token_id=self.tokenizer.pad_token_id,
                     eos_token_id=self.tokenizer.eos_token_id,
-                    repetition_penalty=1.1,  # Prevent repetition issues
-                    no_repeat_ngram_size=3   # Prevent exact repetitions
+                    repetition_penalty=1.1,
+                    no_repeat_ngram_size=3,
+                    # Force first token to be '['
+                    forced_bos_token_id=bracket_token[0] if bracket_token else None
                 )
             except Exception as e:
                 # If generation fails, return empty string to skip this example

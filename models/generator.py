@@ -417,7 +417,7 @@ def twoSum(nums, target):
         return text.strip()
     
     def _fix_common_syntax_errors(self, code: str) -> str:
-        """Fix common syntax errors made by LLMs.
+        """Fix minimal common syntax errors.
         
         Args:
             code: Code with potential syntax errors
@@ -427,42 +427,21 @@ def twoSum(nums, target):
         """
         import re
         
-        # Fix: "for xiny:" -> "for x in y:"
+        # Fix: "for xiny:" -> "for x in y:" (missing space)
         code = re.sub(r'\bfor\s+(\w+)in(\w+):', r'for \1 in \2:', code)
         
-        # Fix: "If" -> "if", "Else" -> "else", "Elif" -> "elif"
+        # Fix: Capitalized keywords
         code = re.sub(r'\bIf\b', 'if', code)
         code = re.sub(r'\bElse\b', 'else', code)
         code = re.sub(r'\bElif\b', 'elif', code)
-        
-        # Fix: "float = '-inf'" -> "float('-inf')"
-        code = re.sub(r"float\s*=\s*['\"](-?inf)['\"]", r"float('\1')", code)
-        code = re.sub(r"int\s*=\s*['\"](\d+)['\"]", r"int('\1')", code)
-        
-        # Fix: "x =  y" -> "x = y" (remove extra spaces)
-        code = re.sub(r'=\s{2,}', '= ', code)
-        
-        # Fix: "x=y" -> "x = y" (add spaces around operators)
-        code = re.sub(r'(\w+)=([^=])', r'\1 = \2', code)
-        code = re.sub(r'([^=])=(\w+)', r'\1= \2', code)
-        
-        # Fix: "x+=y" -> "x += y"
-        code = re.sub(r'(\w+)\+=(\w+)', r'\1 += \2', code)
-        code = re.sub(r'(\w+)-=(\w+)', r'\1 -= \2', code)
-        code = re.sub(r'(\w+)\*=(\w+)', r'\1 *= \2', code)
-        code = re.sub(r'(\w+)/=(\w+)', r'\1 /= \2', code)
-        
-        # Fix: "x>y" -> "x > y"
-        code = re.sub(r'(\w+)>([^=])', r'\1 > \2', code)
-        code = re.sub(r'(\w+)<([^=])', r'\1 < \2', code)
-        
-        # Fix: "max(x,y" -> "max(x, y" (add space after comma)
-        code = re.sub(r',(\w)', r', \1', code)
         
         return code
     
     def _clean_generated_code(self, code: str) -> str:
         """Clean generated code to ensure it's executable.
+        
+        The system prompt instructs the model to output ONLY the function,
+        so we just need minimal cleanup.
         
         Args:
             code: Raw generated code
@@ -470,11 +449,9 @@ def twoSum(nums, target):
         Returns:
             Cleaned code
         """
-        # Remove any leading/trailing whitespace
         code = code.strip()
         
-        # OPTIMIZATION: Remove explanatory text before the first function
-        # Look for the first line starting with "def " or "class "
+        # Remove explanatory text before the first function/class
         lines = code.split('\n')
         first_def_idx = -1
         for i, line in enumerate(lines):
@@ -482,130 +459,11 @@ def twoSum(nums, target):
                 first_def_idx = i
                 break
         
-        # If we found a function/class, remove everything before it
         if first_def_idx > 0:
             lines = lines[first_def_idx:]
+            code = '\n'.join(lines)
         
-        # Remove incomplete placeholder comments like "# Your code here"
-        cleaned_lines = []
-        for line in lines:
-            stripped = line.strip()
-            # Skip placeholder comments
-            if stripped in ['# Your code here', '# TODO', '# Your code hereassistant', 
-                           '# Add your code here', '# Implement here', '# Write code here']:
-                continue
-            cleaned_lines.append(line)
-        
-        lines = cleaned_lines
-        
-        # Rejoin lines
-        code = '\n'.join(lines)
-        
-        # OPTIMIZATION: Fix common syntax errors
+        # Fix minimal syntax errors
         code = self._fix_common_syntax_errors(code)
         
-        # Split into lines again for further processing
-        lines = code.split('\n')
-        
-        # Strategy: Find the BEST function/class definition
-        # Look for one that has actual implementation (not just pass)
-        
-        # Find all function/class definitions
-        definitions = []
-        i = 0
-        while i < len(lines):
-            stripped = lines[i].strip()
-            if stripped.startswith(('def ', 'class ')):
-                # Found a definition, collect it
-                start = i
-                indent = len(lines[i]) - len(lines[i].lstrip())
-                i += 1
-                
-                # Collect all lines that belong to this definition
-                while i < len(lines):
-                    line = lines[i]
-                    stripped_line = line.strip()
-                    
-                    # Stop if we hit another top-level definition
-                    if stripped_line.startswith(('def ', 'class ')) and (len(line) - len(line.lstrip())) == indent:
-                        break
-                    
-                    # Stop if we hit explanatory text (not indented, not empty, not comment)
-                    if stripped_line and not line.startswith((' ', '\t')) and not stripped_line.startswith('#'):
-                        break
-                    
-                    i += 1
-                
-                definition_lines = lines[start:i]
-                
-                # Check if this definition has real implementation (not just pass)
-                has_implementation = False
-                for line in definition_lines[1:]:  # Skip the def/class line
-                    stripped = line.strip()
-                    if stripped and stripped != 'pass' and not stripped.startswith(('#', '"""', "'''")):
-                        # Check if it's actual code (not just docstring)
-                        if not (stripped.startswith('"""') or stripped.startswith("'''")):
-                            has_implementation = True
-                            break
-                
-                definitions.append({
-                    'lines': definition_lines,
-                    'has_implementation': has_implementation,
-                    'start': start
-                })
-            else:
-                i += 1
-        
-        # Choose the best definition
-        if not definitions:
-            # No definitions found, return original
-            return code
-        
-        # Prefer definitions with implementation
-        best_def = None
-        for d in definitions:
-            if d['has_implementation']:
-                best_def = d
-                break
-        
-        # If no implementation found, use the first definition
-        if not best_def:
-            best_def = definitions[0]
-        
-        # Clean the selected definition
-        cleaned_lines = []
-        skip_docstring = False
-        docstring_char = None
-        
-        for line in best_def['lines']:
-            stripped = line.strip()
-            
-            # Handle docstrings
-            if stripped.startswith('"""') or stripped.startswith("'''"):
-                if not skip_docstring:
-                    docstring_char = '"""' if stripped.startswith('"""') else "'''"
-                    skip_docstring = True
-                    if stripped.endswith(docstring_char) and len(stripped) > 3:
-                        skip_docstring = False
-                    continue
-                elif stripped.endswith(docstring_char):
-                    skip_docstring = False
-                    continue
-            
-            if skip_docstring:
-                continue
-            
-            # Skip lines with just pass if there's other code
-            if stripped == 'pass' and len(cleaned_lines) > 1:
-                # Check if there's real code after the def line
-                has_real_code = any(
-                    l.strip() and l.strip() != 'pass' and not l.strip().startswith('#')
-                    for l in cleaned_lines[1:]
-                )
-                if has_real_code:
-                    continue
-            
-            cleaned_lines.append(line)
-        
-        code = '\n'.join(cleaned_lines)
         return code.strip()
