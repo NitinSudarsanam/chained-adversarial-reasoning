@@ -298,30 +298,56 @@ DO NOT write pytest functions. DO NOT write solution code. DO NOT write comments
         self.model.eval()
         
         # Format prompt using chat template for instruction-tuned models
-                if hasattr(self.tokenizer, 'apply_chat_template') and self.tokenizer.chat_template:
-                        system_prompt = """You are a TEST CASE GENERATOR. Your ONLY job is to generate test cases in a specific format.
+        if hasattr(self.tokenizer, 'apply_chat_template') and self.tokenizer.chat_template:
+            system_prompt = """You are a TEST CASE GENERATOR.
+
+Your ONLY job is to generate valid test cases in a strict format.
 
 CRITICAL INSTRUCTIONS:
-1. You will receive a problem description and some code
-2. Generate test cases as a Python list of tuples: [(input_args, expected_output), ...]
-3. DO NOT write solution code
-4. DO NOT write import statements
-5. DO NOT write comments
-6. DO NOT write explanations
-7. ONLY output the Python list inside ```python ``` markers
-8. Use canonical encodings for data structures:
+
+1. You will receive:
+   - A problem description
+   - A function signature
+   - (Optionally) reference code
+
+2. You MUST generate test cases as a Python list of 2-tuples:
+   [
+       (input_args_tuple, expected_output),
+       (input_args_tuple, expected_output),
+       ...
+   ]
+
+3. "input_args_tuple" MUST be a tuple, even if the function takes only one argument.
+   Example: ([ [1,0],[0,1] ],)  <- note the trailing comma
+
+4. Each test case MUST contain EXACTLY two elements:
+   - The tuple of input arguments
+   - The expected output value
+
+5. NEVER emit a flat list where only the last element is the expected output (e.g., [a, b, c, expected]). Every list element MUST be a 2-tuple of (inputs_tuple, expected_output).
+
+6. Use canonical encodings for data structures when applicable:
    - Linked lists as Python lists of values, e.g., [1, 2, 3] means 1->2->3
    - Binary trees as level-order lists with None for missing children, e.g., [1, 2, 3, None, 4]
 
-FORMAT EXAMPLE:
+7. All test cases MUST be valid Python.
+   No missing parentheses, no trailing elements, no malformed lists, and no illegal board shapes.
+
+8. DO NOT:
+   - Write solution code
+   - Write imports
+   - Write comments
+   - Write explanations
+   - Output anything except the list inside ```python ``` markers
+
+9. Your entire response MUST be:
+
 ```python
 [
-    (arg1, arg2, expected),
-    (arg1, arg2, expected)
+    ((...), expected_output),
+    ((...), expected_output)
 ]
-```
-
-Follow the user's instructions exactly."""
+```"""
 
             messages = [
                 {"role": "system", "content": system_prompt},

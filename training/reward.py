@@ -29,7 +29,10 @@ def _merge_baseline_tests(tests_list, baseline_tests):
     merged = list(tests_list)
     for t in baseline_tests:
         if isinstance(t, (list, tuple)) and len(t) >= 2:
-            merged.append(tuple(t))
+            inputs = t[:-1]
+            expected = t[-1]
+            inputs_tuple = tuple(inputs)  # enforce tuple for input args even if single
+            merged.append((inputs_tuple, expected))
     return merged
 
 
