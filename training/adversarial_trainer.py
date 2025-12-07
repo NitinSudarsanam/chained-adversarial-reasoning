@@ -416,6 +416,7 @@ class AdversarialTrainer:
             gen_result = rewards.gen_result
             val_result = rewards.val_result
             gen_result_valid = rewards.gen_result_valid_only
+            gen_result_combined = rewards.gen_result_combined
             total_reward += reward
             
             # Calculate pass percentage (using valid tests only)
