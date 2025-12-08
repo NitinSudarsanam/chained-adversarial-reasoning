@@ -169,17 +169,8 @@ def run_code_tests(code: str, tests: str, ground_truth: str, baseline_tests=None
     # Bonus for catching bugs (up to +BUG_CATCH_BONUS)
     disc_reward += bug_catch_rate * BUG_CATCH_BONUS
     
-    # Clamp discriminator reward to [-1, 1] to keep advantages bounded
-    disc_reward = max(-1.0, min(1.0, disc_reward))
-    
-    # Generator reward: pass rate MINUS 0.5, so:
-    # - 0 passing = -0.5 (penalized)
-    # - 50% passing = 0.0 (neutral)
-    # - 100% passing = +0.5 (rewarded)
-    # This ensures non-zero loss signal even when gen_reward would be 0
-    raw_gen_reward = gen_result_combined.num_passed / gen_result_combined.num_total if gen_result_combined.num_total > 0 else 0.0
-    gen_reward = raw_gen_reward - 0.5  # Shift by -0.5 to give negative reward for 0% pass rate
-    gen_reward = max(-1.0, min(0.5, gen_reward))  # Clamp to [-1, 0.5]
+    # Generator reward: simple pass rate on combined tests (no -1 shift)
+    gen_reward = gen_result_combined.num_passed / gen_result_combined.num_total if gen_result_combined.num_total > 0 else 0.0
     
     print(f"num tests: {n}")
     print(f"valid tests: {num_valid} ({valid_pct*100:.1f}%)")

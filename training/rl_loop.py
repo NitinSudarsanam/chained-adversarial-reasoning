@@ -117,8 +117,8 @@ def train_step(
     optimizer.zero_grad()
     total_loss.backward()
     
-    # Compute gradient norm before clipping
-    grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
+    # Clip gradients
+    torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
     
     # Update weights
     optimizer.step()
@@ -126,9 +126,7 @@ def train_step(
     model.eval()
     
     return {
-        'policy_loss': total_loss.item(),
-        'grad_norm': grad_norm.item() if isinstance(grad_norm, torch.Tensor) else float(grad_norm),
-        'num_losses': len(losses)
+        'policy_loss': total_loss.item()
     }
 
 

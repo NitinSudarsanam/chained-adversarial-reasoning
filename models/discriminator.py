@@ -78,6 +78,9 @@ class LLMDiscriminator:
     
     def eval(self):
         """Set model to evaluation mode."""
+        for name, param in self.model.named_parameters():
+            if "lora_" in name:
+                param.requires_grad = False
         self.model.eval()
     
     def parameters(self):
