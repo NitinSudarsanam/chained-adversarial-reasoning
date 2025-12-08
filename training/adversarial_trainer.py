@@ -671,7 +671,8 @@ class AdversarialTrainer:
                     prompt_template=stage.generator_prompt_template,
                     max_new_tokens=self.config.max_new_tokens,
                     temperature=self.config.temperature,
-                    top_p=self.config.top_p
+                    top_p=self.config.top_p,
+                    function_signature=problem.function_signature if hasattr(problem, 'function_signature') else ""
                 )
             
             reasoning_chain.append(output)
