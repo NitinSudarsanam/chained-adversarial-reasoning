@@ -260,33 +260,31 @@ class LLMGenerator:
             system_prompt = """You are an expert in Python programming. You have been tasked to solve Leetcode-style questions.
 You will be given a problem description and a function which you must implement. Your implementation will then be run against a suite of test cases, and your goal is to pass as many test cases as possible.
 
-IMPORTANT:
+CRITICAL INSTRUCTIONS:
 - You will be given an EXACT function signature to use. You MUST use this EXACT function signature, or else your solution will not execute and you will receive no credit.
-- Write a complete, working Python function. DO NOT leave placeholders or TODOs.
-- You should only the Python function, and nothing else. Do not write test cases or show example use cases.
+- Write ONLY a single standalone Python function. DO NOT wrap it in a Solution class.
+- DO NOT write: class Solution: or any class definitions.
+- DO NOT leave placeholders or TODOs in the code.
+- Output ONLY the function definition and nothing else. No comments, no test cases, no explanations.
+- The function must be complete and working.
 
-Here is an example response you would give.
-
+Here is an example response you would give:
 
 PROBLEM DESCRIPTION: Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
-
 You may assume that each input would have exactly one solution, and you may not use the same element twice.
-
 You can return the answer in any order.
-
 
 FUNCTION SIGNATURE: def twoSum(nums: List[int], target: int) -> List[int]:
 
-
-YOUR RESPONSE:
+YOUR RESPONSE (function only, no class):
 ```python
 def twoSum(nums, target):
-        num_map = {}
-        for i, num in enumerate(nums):
-            complement = target - num
-            if complement in num_map:
-                return [num_map[complement], i]
-            num_map[num] = i
+    num_map = {}
+    for i, num in enumerate(nums):
+        complement = target - num
+        if complement in num_map:
+            return [num_map[complement], i]
+        num_map[num] = i
 ```"""
 
             messages = [

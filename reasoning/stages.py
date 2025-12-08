@@ -24,12 +24,16 @@ REASONING_STAGES = [
 
 Problem: {problem}
 
+Function Signature: {function_signature}
+
 Provide your informal reasoning - explain what the problem is asking, what approach you might take, and any initial thoughts. Be conversational and intuitive.
 
 Informal Reasoning:""",
         discriminator_prompt_template="""Generate test cases for this problem. Output ONLY a Python list of 2-tuples.
 
 PROBLEM: {problem}
+
+FUNCTION SIGNATURE: {function_signature}
 
 INFORMAL REASONING:
 {stage_output}
@@ -38,6 +42,7 @@ Generate {num_tests} basic test cases (happy path, empty input, single element).
 
 Format: [((arg1, arg2, ...), expected), ((arg1, arg2, ...), expected), ...]
 Each element MUST be a 2-tuple where first is tuple of inputs (even for single arg), second is expected output.
+The number of arguments in the tuple MUST match the function signature.
 Arguments can be any type: int, str, list, dict, etc.
 Examples: (([1, 2, 3],), 6) or [(([1], [2]), True)]
 
@@ -55,6 +60,8 @@ DO NOT write pytest functions. DO NOT write solution code. DO NOT write comments
 
 Problem: {problem}
 
+Function Signature: {function_signature}
+
 Previous Reasoning:
 {previous_stages}
 
@@ -69,6 +76,8 @@ Structured Reasoning:""",
 
 PROBLEM: {problem}
 
+FUNCTION SIGNATURE: {function_signature}
+
 STRUCTURED REASONING:
 {stage_output}
 
@@ -76,6 +85,7 @@ Generate {num_tests} edge case test cases (boundary conditions, edge cases).
 
 Format: [((arg1, arg2, ...), expected), ((arg1, arg2, ...), expected), ...]
 Each element MUST be a 2-tuple where first is tuple of inputs (even for single arg), second is expected output.
+The number of arguments in the tuple MUST match the function signature.
 Arguments can be any type: int, str, list, dict, etc.
 Examples: (([1, 2, 3],), 6) or [(([1], [2]), True)]
 
@@ -93,6 +103,8 @@ DO NOT write pytest functions. DO NOT write solution code. DO NOT write comments
 
 Problem: {problem}
 
+Function Signature: {function_signature}
+
 Previous Reasoning:
 {previous_stages}
 
@@ -103,6 +115,8 @@ Pseudocode:""",
 
 PROBLEM: {problem}
 
+FUNCTION SIGNATURE: {function_signature}
+
 PSEUDOCODE:
 {stage_output}
 
@@ -110,6 +124,7 @@ Generate {num_tests} algorithmic test cases (loop boundaries, off-by-one errors,
 
 Format: [((arg1, arg2, ...), expected), ((arg1, arg2, ...), expected), ...]
 Each element MUST be a 2-tuple where first is tuple of inputs (even for single arg), second is expected output.
+The number of arguments in the tuple MUST match the function signature.
 Arguments can be any type: int, str, list, dict, etc.
 Examples: (([1, 2, 3],), 6) or [(([1], [2]), True)]
 
@@ -127,6 +142,8 @@ DO NOT write pytest functions. DO NOT write solution code. DO NOT write comments
 
 Problem: {problem}
 
+Function Signature: {function_signature}
+
 Previous Reasoning and Pseudocode:
 {previous_stages}
 
@@ -142,6 +159,8 @@ Constraints and Invariants:""",
 
 PROBLEM: {problem}
 
+FUNCTION SIGNATURE: {function_signature}
+
 CONSTRAINTS AND INVARIANTS:
 {stage_output}
 
@@ -149,6 +168,7 @@ Generate {num_tests} constraint-testing test cases (constraint violations, stres
 
 Format: [((arg1, arg2, ...), expected), ((arg1, arg2, ...), expected), ...]
 Each element MUST be a 2-tuple where first is tuple of inputs (even for single arg), second is expected output.
+The number of arguments in the tuple MUST match the function signature.
 Arguments can be any type: int, str, list, dict, etc.
 Examples: (([1, 2, 3],), 6) or [(([1], [2]), True)]
 
@@ -169,7 +189,10 @@ FUNCTION SIGNATURE: {function_signature}
 Previous reasoning:
 {previous_stages}
 
-YOUR RESPONSE:
+CRITICAL: Write ONLY the function, DO NOT wrap in a Solution class or any class.
+Write a complete, working function using the EXACT signature provided.
+
+YOUR RESPONSE (function only):
 ```python
 """
         
@@ -195,12 +218,15 @@ YOUR RESPONSE:
 
 PROBLEM: {problem}
 
+FUNCTION SIGNATURE: {function_signature}
+
 CODE TO TEST:
 {stage_output}
 
 Generate {num_tests} test cases in this exact format:
 [((arg1, arg2, ...), expected), ((arg1, arg2, ...), expected), ...]
 Each element MUST be a 2-tuple where first is tuple of inputs (even for single arg), second is expected output.
+The number of arguments in the tuple MUST match the function signature.
 Arguments can be any type: int, str, list, dict, etc.
 Examples: (([1, 2, 3],), 6) or [(([1], [2]), True)]
 

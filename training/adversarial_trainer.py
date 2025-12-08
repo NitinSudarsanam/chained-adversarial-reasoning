@@ -143,7 +143,8 @@ class AdversarialTrainer:
             prompt = stage.discriminator_prompt_template.format(
                 problem=problem.description,
                 stage_output=stage_output,
-                num_tests=self.config.num_tests_per_problem
+                num_tests=self.config.num_tests_per_problem,
+                function_signature=problem.function_signature if hasattr(problem, 'function_signature') else ""
             )
             
             stage_tests = self.discriminator.generate_tests(
@@ -152,7 +153,8 @@ class AdversarialTrainer:
                 num_tests=self.config.num_tests_per_problem,
                 prompt_template=stage.discriminator_prompt_template,
                 max_new_tokens=self.config.max_new_tokens,
-                temperature=self.config.temperature
+                temperature=self.config.temperature,
+                function_signature=problem.function_signature if hasattr(problem, 'function_signature') else ""
             )
             
             if not stage_tests or not stage_tests.strip():
@@ -398,7 +400,7 @@ class AdversarialTrainer:
             prompt = stage.generator_prompt_template.format(
                 problem=problem.description,
                 previous_stages=previous_text if stage_id > 1 else "None",
-                function_signature=problem.function_signature if stage_id == 5 else ""
+                function_signature=problem.function_signature if hasattr(problem, 'function_signature') else ""
             )
             old_log_probs = self.generator.get_log_probs(prompt, stage_output)
             
@@ -722,7 +724,8 @@ class AdversarialTrainer:
                         prompt_template=stage.generator_prompt_template,
                         max_new_tokens=self.config.max_new_tokens,
                         temperature=self.config.temperature,
-                        top_p=self.config.top_p
+                        top_p=self.config.top_p,
+                        function_signature=problem.function_signature if hasattr(problem, 'function_signature') else ""
                     )
             
             # Restore training mode if this stage is trainable
@@ -742,7 +745,8 @@ class AdversarialTrainer:
                     num_tests=self.config.num_tests_per_problem,
                     prompt_template=stage.discriminator_prompt_template,
                     max_new_tokens=self.config.max_new_tokens,
-                    temperature=self.config.temperature
+                    temperature=self.config.temperature,
+                    function_signature=problem.function_signature if hasattr(problem, 'function_signature') else ""
                 )
             
             # Restore training mode if this stage is trainable

@@ -93,7 +93,8 @@ class LLMDiscriminator:
         prompt_template: str = None,
         max_new_tokens: int = 512,
         temperature: float = 0.8,
-        top_p: float = 0.9
+        top_p: float = 0.9,
+        function_signature: str = ""
     ) -> str:
         """Generate adversarial test cases as a Python list of tuples.
         
@@ -141,7 +142,8 @@ DO NOT write pytest functions. DO NOT write solution code. DO NOT write comments
         prompt = prompt_template.format(
             problem=problem,
             stage_output=generator_code,
-            num_tests=num_tests
+            num_tests=num_tests,
+            function_signature=function_signature
         )
         
         # Debug: Print first 500 chars of prompt to verify correctness

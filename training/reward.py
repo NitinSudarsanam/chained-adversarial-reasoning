@@ -81,11 +81,38 @@ def run_code_tests(code: str, tests: str, ground_truth: str, baseline_tests=None
     
     if gen_result.num_total == 0:
         # If no discriminator tests, still penalize discriminator for lack of test generation
-        # and give generator neutral reward (not punished for something it didn't produce)
+        # Generator should be evaluated on baseline tests if available
         gen_result_valid_only = gen_result_baseline_only if gen_result_baseline_only else gen_result
+        
+        # Use baseline tests for combined result if available
+        if gen_result_baseline_only and gen_result_baseline_only.num_total > 0:
+            gen_result_combined_to_use = gen_result_baseline_only
+        else:
+            gen_result_combined_to_use = gen_result_combined
+        
+        # Compute generator reward based on baseline tests if available
+        if gen_result_combined_to_use.num_total > 0:
+            raw_gen_reward = gen_result_combined_to_use.num_passed / gen_result_combined_to_use.num_total
+            gen_reward = raw_gen_reward - 0.5  # Shift to ensure non-zero loss
+        else:
+            gen_reward = 0.0  # No tests at all (no valid disc tests, no baseline), neutral reward
+        
         # Discriminator gets -0.5 for not generating valid tests
-        # Generator gets 0.0 (neutral) since it's not its responsibility to generate tests
-        return Rewards(0.0, -0.5, gen_result_combined, val_result, gen_result_valid_only, gen_result_combined, gen_result_baseline_only)
+        # Print debug info
+        print(f"num tests: 0 (no valid discriminator tests)")
+        print(f"valid tests: 0")
+        print(f"invalid tests: {val_result.num_total if val_result else 0}")
+        print(f"passed valid tests: 0")
+        print(f"failed valid tests (bugs caught): 0")
+        print(f"baseline tests: {gen_result_baseline_only.num_total if gen_result_baseline_only else 0}")
+        print(f"combined tests: {gen_result_combined_to_use.num_total}")
+        print(f"disc_reward: -0.5000 (no valid tests generated)")
+        if gen_result_combined_to_use.num_total > 0:
+            print(f"gen_reward: {raw_gen_reward:.4f} (raw pass_rate on baseline) -> {gen_reward:.4f} (shifted by -0.5)")
+        else:
+            print(f"gen_reward: 0.0000 (no tests available)")
+        
+        return Rewards(gen_reward, -0.5, gen_result_combined_to_use, val_result, gen_result_valid_only, gen_result_combined_to_use, gen_result_baseline_only)
     
     # Create filtered result with only valid discriminator tests
     valid_indices = [i for i, v in enumerate(gen_result.is_valid) if v]
@@ -102,45 +129,59 @@ def run_code_tests(code: str, tests: str, ground_truth: str, baseline_tests=None
     
     # Reward constants (normalized by test count)
     n = gen_result.num_total
-    CORRECT_TEST = 0.01 / n
-    WRONG_TEST = -1 / n
-    CAUGHT_BUG = 1 / n
+    
+    # Reward constants for discriminator
+    VALID_REWARD = 0.4      # Max reward for generating valid tests
+    INVALID_PENALTY = 0.6   # Max penalty for invalid tests (scales with invalid%)
+    BUG_CATCH_BONUS = 0.6   # Max bonus for catching bugs
     
     # Compute rewards directly from execution indices
     invalid_indices = [i for i, v in enumerate(gen_result.is_valid) if not v]
     
-    # Discriminator reward breakdown:
-    # - Generating valid tests: +0.1 per valid test (normalized)
-    # - Generating invalid tests: -0.5 per invalid test (normalized) 
-    # - Catching actual bugs (test fails on generated, passes on ground truth): +0.5 per bug caught
+    # Calculate percentages
     valid_passed_count = len(valid_passed)
     valid_failed_count = len(valid_failed)
     num_valid = len(valid_indices)
     num_invalid = len(invalid_indices)
     
-    # Discriminator wants: (1) valid tests, (2) tests that catch bugs
+    invalid_pct = num_invalid / n if n > 0 else 0.0  # Percentage of tests that are invalid
+    valid_pct = num_valid / n if n > 0 else 0.0      # Percentage of tests that are valid
+    bug_catch_rate = valid_failed_count / n if n > 0 else 0.0  # Percentage of tests catching bugs
+    
+    # Discriminator reward structure:
+    # Base: reward for generating valid tests = +VALID_REWARD * valid_pct
+    # Penalty: penalize for invalid tests magnitude = -INVALID_PENALTY * invalid_pct (magnitude varies with invalid percentage)
+    # Bonus: reward for catching bugs = +BUG_CATCH_BONUS * bug_catch_rate
+    
     disc_reward = 0.0
-    if num_valid > 0:
-        disc_reward += (num_valid / n) * 0.4  # Reward for generating valid tests (max 0.4)
-    if num_invalid > 0:
-        disc_reward -= (num_invalid / n) * 0.6  # Penalty for invalid tests (max -0.6)
-    if valid_failed_count > 0:
-        disc_reward += (valid_failed_count / n) * 0.5  # Bonus for catching bugs (max 0.5)
+    # Reward for valid tests (up to +VALID_REWARD)
+    disc_reward += valid_pct * VALID_REWARD
+    # Penalty for invalid tests - magnitude proportional to invalid_pct (up to -INVALID_PENALTY)
+    disc_reward -= invalid_pct * INVALID_PENALTY
+    # Bonus for catching bugs (up to +BUG_CATCH_BONUS)
+    disc_reward += bug_catch_rate * BUG_CATCH_BONUS
     
     # Clamp discriminator reward to [-1, 1] to keep advantages bounded
     disc_reward = max(-1.0, min(1.0, disc_reward))
     
-    # Generator reward: simple pass rate on combined tests (already bounded to [0, 1])
-    gen_reward = gen_result_combined.num_passed / gen_result_combined.num_total if gen_result_combined.num_total > 0 else 0.0
+    # Generator reward: pass rate MINUS 0.5, so:
+    # - 0 passing = -0.5 (penalized)
+    # - 50% passing = 0.0 (neutral)
+    # - 100% passing = +0.5 (rewarded)
+    # This ensures non-zero loss signal even when gen_reward would be 0
+    raw_gen_reward = gen_result_combined.num_passed / gen_result_combined.num_total if gen_result_combined.num_total > 0 else 0.0
+    gen_reward = raw_gen_reward - 0.5  # Shift by -0.5 to give negative reward for 0% pass rate
+    gen_reward = max(-1.0, min(0.5, gen_reward))  # Clamp to [-1, 0.5]
     
     print(f"num tests: {n}")
-    print(f"valid tests: {num_valid}")
-    print(f"invalid tests: {num_invalid}")
+    print(f"valid tests: {num_valid} ({valid_pct*100:.1f}%)")
+    print(f"invalid tests: {num_invalid} ({invalid_pct*100:.1f}%)")
     print(f"passed valid tests: {valid_passed_count}")
-    print(f"failed valid tests (bugs caught): {valid_failed_count}")
+    print(f"failed valid tests (bugs caught): {valid_failed_count} ({bug_catch_rate*100:.1f}%)")
     print(f"baseline tests: {gen_result_baseline_only.num_total if gen_result_baseline_only else 0}")
     print(f"combined tests: {gen_result_combined.num_total}")
-    print(f"disc_reward: {disc_reward:.4f}, gen_reward: {gen_reward:.4f}")
+    print(f"disc_reward components: valid({valid_pct*VALID_REWARD:.3f}) - invalid({invalid_pct*INVALID_PENALTY:.3f}) + bugs({bug_catch_rate*BUG_CATCH_BONUS:.3f}) = {disc_reward:.4f}")
+    print(f"gen_reward: {raw_gen_reward:.4f} (raw pass_rate) -> {gen_reward:.4f} (shifted by -0.5)")
     
     return Rewards(gen_reward, disc_reward, gen_result_combined, val_result, gen_result_valid_only, gen_result_combined, gen_result_baseline_only)
 

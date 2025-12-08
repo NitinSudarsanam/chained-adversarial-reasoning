@@ -79,7 +79,8 @@ class MultiAttemptManager:
                     previous_stages=[],
                     stage_id=stage_id,
                     prompt_template=prompt_template + feedback,
-                    max_new_tokens=max_new_tokens
+                    max_new_tokens=max_new_tokens,
+                    function_signature=problem.function_signature if hasattr(problem, 'function_signature') else ""
                 )
             
             attempts.append(output)
@@ -89,7 +90,8 @@ class MultiAttemptManager:
                 tests = self.discriminator.generate_tests(
                     problem=problem.description,
                     generator_code=output,
-                    num_tests=5
+                    num_tests=5,
+                    function_signature=problem.function_signature if hasattr(problem, 'function_signature') else ""
                 )
                 result = self.sandbox.execute_tests(output, tests)
                 results.append(result)

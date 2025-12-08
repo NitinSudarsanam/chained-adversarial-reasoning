@@ -161,7 +161,8 @@ class InferenceEngine:
                         prompt_template=stage.generator_prompt_template,
                         max_new_tokens=max_new_tokens,
                         temperature=temperature,
-                        top_p=top_p
+                        top_p=top_p,
+                        function_signature=function_signature
                     )
                 
                 reasoning_chain.append(output)
