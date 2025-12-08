@@ -107,13 +107,12 @@ def run_code_tests(code: str, tests: str, ground_truth: str, baseline_tests=None
         print(f"baseline tests: {gen_result_baseline_only.num_total if gen_result_baseline_only else 0}")
         print(f"combined tests: {gen_result_combined_to_use.num_total}")
         
-        # Debug: Print test execution details
+        # Debug: Print test execution details with clearer labels
         if gen_result_combined_to_use.num_total > 0:
-            print(f"\nTest execution breakdown (baseline tests only):")
-            print(f"  Passed: {gen_result_combined_to_use.passed_tests}")
-            print(f"  Failed: {gen_result_combined_to_use.failed_tests}")
-            if hasattr(gen_result_combined_to_use, 'is_valid'):
-                print(f"  Valid flags: {gen_result_combined_to_use.is_valid}")
+            print(f"\nTest execution breakdown:")
+            print(f"  Baseline tests only: {gen_result_combined_to_use.num_total} tests")
+            print(f"    Passed: {gen_result_combined_to_use.passed_tests} ({gen_result_combined_to_use.num_passed} total)")
+            print(f"    Failed: {gen_result_combined_to_use.failed_tests} ({len(gen_result_combined_to_use.failed_tests)} total)")
         
         print(f"\ndisc_reward: -0.5000 (no valid tests generated)")
         if gen_result_combined_to_use.num_total > 0:
@@ -190,13 +189,22 @@ def run_code_tests(code: str, tests: str, ground_truth: str, baseline_tests=None
     print(f"baseline tests: {gen_result_baseline_only.num_total if gen_result_baseline_only else 0}")
     print(f"combined tests: {gen_result_combined.num_total}")
     
-    # Debug: Print test execution details
+    # Debug: Print test execution details with clearer labels
     if gen_result_combined.num_total > 0:
-        print(f"\nTest execution breakdown (combined tests):")
-        print(f"  Passed: {gen_result_combined.passed_tests}")
-        print(f"  Failed: {gen_result_combined.failed_tests}")
-        if hasattr(gen_result_combined, 'is_valid'):
-            print(f"  Valid flags: {gen_result_combined.is_valid}")
+        print(f"\nTest execution breakdown:")
+        print(f"  Combined tests (disc valid + disc invalid + baseline): {gen_result_combined.num_total} tests")
+        print(f"    Passed: {gen_result_combined.passed_tests} ({gen_result_combined.num_passed} total)")
+        print(f"    Failed: {gen_result_combined.failed_tests} ({len(gen_result_combined.failed_tests)} total)")
+        
+        if gen_result_baseline_only and gen_result_baseline_only.num_total > 0:
+            print(f"  Baseline tests only: {gen_result_baseline_only.num_total} tests")
+            print(f"    Passed: {gen_result_baseline_only.passed_tests} ({gen_result_baseline_only.num_passed} total)")
+            print(f"    Failed: {gen_result_baseline_only.failed_tests} ({len(gen_result_baseline_only.failed_tests)} total)")
+        
+        if num_valid > 0:
+            print(f"  Valid discriminator tests only: {num_valid} tests")
+            print(f"    Passed: {valid_passed} ({len(valid_passed)} total)")
+            print(f"    Failed: {valid_failed} ({len(valid_failed)} total)")
     
     print(f"\ndisc_reward components: valid({valid_pct*VALID_REWARD:.3f}) - invalid({invalid_pct*INVALID_PENALTY:.3f}) + bugs({bug_catch_rate*BUG_CATCH_BONUS:.3f}) = {disc_reward:.4f}")
     print(f"gen_reward: {raw_gen_reward:.4f} (raw pass_rate) -> {gen_reward:.4f} (shifted by -0.5)")

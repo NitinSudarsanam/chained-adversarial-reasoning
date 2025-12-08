@@ -146,8 +146,11 @@ DO NOT write pytest functions. DO NOT write solution code. DO NOT write comments
             function_signature=function_signature
         )
         
+        # Debug: Print function signature explicitly
+        print(f"\n[DEBUG] Discriminator generating tests for function: {function_signature if function_signature else 'N/A'}")
+        
         # Debug: Print first 500 chars of prompt to verify correctness
-        print(f"\n[DEBUG] Discriminator prompt (first 500 chars):")
+        print(f"[DEBUG] Discriminator prompt (first 500 chars):")
         print(prompt[:500])
         print("...")
         

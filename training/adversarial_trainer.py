@@ -189,19 +189,25 @@ class AdversarialTrainer:
             reward = rewards.discriminator_reward
             gen_result = rewards.gen_result
             val_result = rewards.val_result
-            gen_result_combined = rewards.gen_result
+            gen_result_combined = rewards.gen_result_combined
             gen_result_valid = rewards.gen_result_valid_only
+            gen_result_baseline = rewards.gen_result_baseline_only
             total_reward += reward
             
-            # Calculate pass percentages (using valid tests only)
+            # Calculate pass percentages
             gen_pass_pct = (gen_result_valid.num_passed / gen_result_valid.num_total * 100) if gen_result_valid.num_total > 0 else 0.0
+            combined_pass_pct = (gen_result_combined.num_passed / gen_result_combined.num_total * 100) if gen_result_combined.num_total > 0 else 0.0
             val_pass_pct = (val_result.num_passed / val_result.num_total * 100) if val_result.num_total > 0 else 0.0
             
             # Log reward for this step with details
             func_sig = problem.function_signature if hasattr(problem, 'function_signature') else 'N/A'
             print(f"\n  Step {step+1}/{n_steps} - Discriminator Reward: {reward:.4f}")
             print(f"    Problem: {problem.id} | Function: {func_sig}")
-            print(f"    Generator Pass Rate (valid tests): {gen_result_valid.num_passed}/{gen_result_valid.num_total} ({gen_pass_pct:.1f}%)")
+            print(f"    Generator Pass Rate (valid disc tests only): {gen_result_valid.num_passed}/{gen_result_valid.num_total} ({gen_pass_pct:.1f}%)")
+            print(f"    Generator Pass Rate (combined with baseline): {gen_result_combined.num_passed}/{gen_result_combined.num_total} ({combined_pass_pct:.1f}%)")
+            if gen_result_baseline and gen_result_baseline.num_total > 0:
+                baseline_pass_pct = (gen_result_baseline.num_passed / gen_result_baseline.num_total * 100)
+                print(f"    Generator Pass Rate (baseline only): {gen_result_baseline.num_passed}/{gen_result_baseline.num_total} ({baseline_pass_pct:.1f}%)")
             print(f"    Validation Pass Rate: {val_result.num_passed}/{val_result.num_total} ({val_pass_pct:.1f}%)")
             
             # Log generated code and tests for debugging
