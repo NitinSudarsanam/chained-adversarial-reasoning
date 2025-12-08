@@ -95,7 +95,7 @@ class LLMDiscriminator:
         num_tests: int = 5,
         prompt_template: str = None,
         max_new_tokens: int = 512,
-        temperature: float = 0.8,
+        temperature: float = 0.2,
         top_p: float = 0.9,
         function_signature: str = ""
     ) -> str:
