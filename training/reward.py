@@ -106,7 +106,16 @@ def run_code_tests(code: str, tests: str, ground_truth: str, baseline_tests=None
         print(f"failed valid tests (bugs caught): 0")
         print(f"baseline tests: {gen_result_baseline_only.num_total if gen_result_baseline_only else 0}")
         print(f"combined tests: {gen_result_combined_to_use.num_total}")
-        print(f"disc_reward: -0.5000 (no valid tests generated)")
+        
+        # Debug: Print test execution details
+        if gen_result_combined_to_use.num_total > 0:
+            print(f"\nTest execution breakdown (baseline tests only):")
+            print(f"  Passed: {gen_result_combined_to_use.passed_tests}")
+            print(f"  Failed: {gen_result_combined_to_use.failed_tests}")
+            if hasattr(gen_result_combined_to_use, 'is_valid'):
+                print(f"  Valid flags: {gen_result_combined_to_use.is_valid}")
+        
+        print(f"\ndisc_reward: -0.5000 (no valid tests generated)")
         if gen_result_combined_to_use.num_total > 0:
             print(f"gen_reward: {raw_gen_reward:.4f} (raw pass_rate on baseline) -> {gen_reward:.4f} (shifted by -0.5)")
         else:
@@ -180,7 +189,16 @@ def run_code_tests(code: str, tests: str, ground_truth: str, baseline_tests=None
     print(f"failed valid tests (bugs caught): {valid_failed_count} ({bug_catch_rate*100:.1f}%)")
     print(f"baseline tests: {gen_result_baseline_only.num_total if gen_result_baseline_only else 0}")
     print(f"combined tests: {gen_result_combined.num_total}")
-    print(f"disc_reward components: valid({valid_pct*VALID_REWARD:.3f}) - invalid({invalid_pct*INVALID_PENALTY:.3f}) + bugs({bug_catch_rate*BUG_CATCH_BONUS:.3f}) = {disc_reward:.4f}")
+    
+    # Debug: Print test execution details
+    if gen_result_combined.num_total > 0:
+        print(f"\nTest execution breakdown (combined tests):")
+        print(f"  Passed: {gen_result_combined.passed_tests}")
+        print(f"  Failed: {gen_result_combined.failed_tests}")
+        if hasattr(gen_result_combined, 'is_valid'):
+            print(f"  Valid flags: {gen_result_combined.is_valid}")
+    
+    print(f"\ndisc_reward components: valid({valid_pct*VALID_REWARD:.3f}) - invalid({invalid_pct*INVALID_PENALTY:.3f}) + bugs({bug_catch_rate*BUG_CATCH_BONUS:.3f}) = {disc_reward:.4f}")
     print(f"gen_reward: {raw_gen_reward:.4f} (raw pass_rate) -> {gen_reward:.4f} (shifted by -0.5)")
     
     return Rewards(gen_reward, disc_reward, gen_result_combined, val_result, gen_result_valid_only, gen_result_combined, gen_result_baseline_only)

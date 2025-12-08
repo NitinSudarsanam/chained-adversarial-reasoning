@@ -136,6 +136,12 @@ class LLMGenerator:
         # Sanitize output
         output = self._sanitize_output(output)
         
+        # Debug: Warn if output is empty
+        if not output or not output.strip():
+            print(f"⚠ WARNING: generate_stage_output produced EMPTY output")
+            print(f"   Stage ID: {stage_id}")
+            print(f"   Prompt preview: {prompt[:200]}...")
+        
         return output
     
     def generate_code(
@@ -178,6 +184,12 @@ class LLMGenerator:
         
         # Additional cleaning for code
         output = self._clean_generated_code(output)
+        
+        # Debug: Warn if final code is empty
+        if not output or not output.strip():
+            print(f"⚠ WARNING: generate_code produced EMPTY final code")
+            print(f"   Problem preview: {problem[:100]}...")
+            print(f"   Reasoning chain length: {len(reasoning_chain)}")
         
         return output.replace("\t", "    ").replace("List", "list") # to fix typing inconsistency with newer python versions
     
@@ -320,7 +332,9 @@ def twoSum(nums, target):
                 )
             except Exception as e:
                 # If generation fails, return empty string to skip this example
-                print(f"Warning: Generation failed with error: {type(e).__name__}: {str(e)[:100]}")
+                print(f"❌ ERROR: Generation failed with error: {type(e).__name__}: {str(e)[:200]}")
+                print(f"   Prompt length: {len(formatted_prompt)} chars")
+                print(f"   Max new tokens: {max_new_tokens}")
                 # Restore training mode if needed
                 if was_training:
                     self.model.train()

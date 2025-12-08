@@ -137,6 +137,16 @@ class AdversarialTrainer:
             
             # Get the tests generated at THIS stage for log probs
             stage_output = reasoning_chain[stage_id - 1] if stage_id <= len(reasoning_chain) else final_code
+            
+            # Debug: Check if stage_output is empty
+            if not stage_output or not stage_output.strip():
+                print(f"  ⚠ WARNING: Stage output is EMPTY for problem {problem.id} at stage {stage_id}")
+                print(f"     Reasoning chain length: {len(reasoning_chain)}")
+                print(f"     Final code length: {len(final_code) if final_code else 0}")
+                print(f"     Function signature: {problem.function_signature if hasattr(problem, 'function_signature') else 'N/A'}")
+                # Use problem description as fallback for discriminator prompt
+                stage_output = f"# No code generated yet\n# Problem: {problem.description[:100]}..."
+            
             stage = get_stage(stage_id)
             
             # Generate tests for this stage to get log probs
@@ -188,7 +198,9 @@ class AdversarialTrainer:
             val_pass_pct = (val_result.num_passed / val_result.num_total * 100) if val_result.num_total > 0 else 0.0
             
             # Log reward for this step with details
+            func_sig = problem.function_signature if hasattr(problem, 'function_signature') else 'N/A'
             print(f"\n  Step {step+1}/{n_steps} - Discriminator Reward: {reward:.4f}")
+            print(f"    Problem: {problem.id} | Function: {func_sig}")
             print(f"    Generator Pass Rate (valid tests): {gen_result_valid.num_passed}/{gen_result_valid.num_total} ({gen_pass_pct:.1f}%)")
             print(f"    Validation Pass Rate: {val_result.num_passed}/{val_result.num_total} ({val_pass_pct:.1f}%)")
             
@@ -420,12 +432,17 @@ class AdversarialTrainer:
             gen_result_combined = rewards.gen_result_combined
             total_reward += reward
             
-            # Calculate pass percentage (using valid tests only)
-            pass_pct = (gen_result_valid.num_passed / gen_result_valid.num_total * 100) if gen_result_valid.num_total > 0 else 0.0
+            # Calculate pass percentage (using combined tests which includes baseline)
+            pass_pct = (gen_result_combined.num_passed / gen_result_combined.num_total * 100) if gen_result_combined.num_total > 0 else 0.0
+            valid_only_pct = (gen_result_valid.num_passed / gen_result_valid.num_total * 100) if gen_result_valid.num_total > 0 else 0.0
             
             # Log reward for this step with details
+            func_sig = problem.function_signature if hasattr(problem, 'function_signature') else 'N/A'
             print(f"\n  Step {step+1}/{n_steps} - Generator Reward: {reward:.4f}")
-            print(f"    Test Pass Rate (valid tests): {gen_result_valid.num_passed}/{gen_result_valid.num_total} ({pass_pct:.1f}%)")
+            print(f"    Problem: {problem.id} | Function: {func_sig}")
+            print(f"    Test Pass Rate (combined): {gen_result_combined.num_passed}/{gen_result_combined.num_total} ({pass_pct:.1f}%)")
+            if gen_result_valid.num_total > 0:
+                print(f"    Test Pass Rate (valid disc tests only): {gen_result_valid.num_passed}/{gen_result_valid.num_total} ({valid_only_pct:.1f}%)")
             
             # Log generated code and tests for debugging
             print(f"  Generated Code (length={len(final_code)}):")

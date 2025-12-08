@@ -556,15 +556,21 @@ Where inputs_tuple is itself a tuple with all input arguments."""
         
         # Salvage and fix valid tuples
         valid_tuples = []
+        skipped_count = 0
         for item in obj:
             fixed = self._try_fix_test_tuple(item)
             if fixed is not None:
                 valid_tuples.append(fixed)
+            else:
+                skipped_count += 1
         
         # If we salvaged at least one valid tuple, return it as a list
         if valid_tuples:
+            if skipped_count > 0:
+                print(f"  ⚠ Salvaged {len(valid_tuples)} valid tests, skipped {skipped_count} malformed tests")
             return str(valid_tuples).strip()
         
+        print(f"  ❌ Could not salvage any valid tests from {len(obj)} items")
         return ""
     
     def _try_fix_test_tuple(self, item):
@@ -582,26 +588,30 @@ Where inputs_tuple is itself a tuple with all input arguments."""
         
         # Already perfect: 2-tuple with tuple/list as first element
         if len(item) == 2 and isinstance(item[0], (tuple, list)):
-            return tuple(item)  # Normalize to tuple
+            inputs_tuple = tuple(item[0]) if isinstance(item[0], list) else item[0]
+            return (inputs_tuple, item[1])
         
-        # Has 2+ elements, might be misformatted
-        if len(item) >= 2:
-            # Case: (("cb", 1,), "bc") - first element is tuple with extra items
-            # Try to extract: first item is inputs (as tuple), last item is expected
-            first_elem = item[0]
-            
-            # If first element is tuple/list, use it as inputs
-            if isinstance(first_elem, (tuple, list)):
-                # Last element is expected output
+        # Has 3+ elements: might be ((inputs), extra_comma, expected) or (arg1, arg2, expected)
+        if len(item) >= 3:
+            # Case 1: First element is tuple/list -> (inputs_tuple, ..., expected)
+            if isinstance(item[0], (tuple, list)):
+                inputs_tuple = tuple(item[0]) if isinstance(item[0], list) else item[0]
                 expected = item[-1]
-                return (tuple(first_elem) if isinstance(first_elem, list) else first_elem, expected)
-            
-            # Case: ("", 0, "") - flat list, assume first is input, last is expected
-            # Convert first element to tuple for inputs
-            if len(item) >= 2:
-                inputs_tuple = (item[0],)  # Wrap single input in tuple
-                expected = item[-1]  # Last element is expected
                 return (inputs_tuple, expected)
+            
+            # Case 2: Multiple args followed by expected: (arg1, arg2, ..., expected)
+            # Heuristic: if all but last are simple types, assume they're inputs
+            # This handles: ("str1", "str2", expected) -> (("str1", "str2"), expected)
+            inputs_tuple = tuple(item[:-1])
+            expected = item[-1]
+            return (inputs_tuple, expected)
+        
+        # Has exactly 2 elements but first is not tuple/list
+        if len(item) == 2:
+            # Wrap first element in tuple: (input, expected) -> ((input,), expected)
+            inputs_tuple = (item[0],)
+            expected = item[1]
+            return (inputs_tuple, expected)
         
         # Only 1 element or empty - skip
         return None
