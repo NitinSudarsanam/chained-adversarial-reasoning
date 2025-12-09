@@ -1,0 +1,376 @@
+[
+  {
+    "problem_id": "p00000",
+    "problem_statement": "Write a program which prints multiplication tables from 1x1 to 9x9 in the format: 1x1=1\\n1x2=2\\n...\\n9x9=81",
+    "function_signature": "def multiplication_table() -> str",
+    "baseline_tests": [
+      [(), "1x1=1\n1x2=2\n1x3=3\n1x4=4\n1x5=5\n1x6=6\n1x7=7\n1x8=8\n1x9=9\n2x1=2\n2x2=4\n2x3=6\n2x4=8\n2x5=10\n2x6=12\n2x7=14\n2x8=16\n2x9=18\n3x1=3\n3x2=6\n3x3=9\n3x4=12\n3x5=15\n3x6=18\n3x7=21\n3x8=24\n3x9=27\n4x1=4\n4x2=8\n4x3=12\n4x4=16\n4x5=20\n4x6=24\n4x7=28\n4x8=32\n4x9=36\n5x1=5\n5x2=10\n5x3=15\n5x4=20\n5x5=25\n5x6=30\n5x7=35\n5x8=40\n5x9=45\n6x1=6\n6x2=12\n6x3=18\n6x4=24\n6x5=30\n6x6=36\n6x7=42\n6x8=48\n6x9=54\n7x1=7\n7x2=14\n7x3=21\n7x4=28\n7x5=35\n7x6=42\n7x7=49\n7x8=56\n7x9=63\n8x1=8\n8x2=16\n8x3=24\n8x4=32\n8x5=40\n8x6=48\n8x7=56\n8x8=64\n8x9=72\n9x1=9\n9x2=18\n9x3=27\n9x4=36\n9x5=45\n9x6=54\n9x7=63\n9x8=72\n9x9=81"]
+    ],
+    "buggy": "def multiplication_table() -> str:\n    result = []\n    for i in range(1, 10):\n        for j in range(1, 10):\n            result.append(f\"{i}x{j}={i*j}\")\n    return \" \".join(result)",
+    "fixed": "def multiplication_table() -> str:\n    result = []\n    for i in range(1, 10):\n        for j in range(1, 10):\n            result.append(f\"{i}x{j}={i*j}\")\n    return \"\\n\".join(result)"
+  },
+  {
+    "problem_id": "p00001",
+    "problem_statement": "Given heights of 10 mountains, return the heights of the top 3 mountains in descending order.",
+    "function_signature": "def top_three_mountains(heights: list[int]) -> list[int]",
+    "baseline_tests": [
+      [[1819, 2003, 876, 2840, 1723, 1673, 3776, 2848, 1592, 922], [3776, 2848, 2840]],
+      [[100, 200, 300, 400, 500, 600, 700, 800, 900, 900], [900, 900, 800]]
+    ],
+    "buggy": "def top_three_mountains(heights: list[int]) -> list[int]:\n    heights.sort(reverse=True)\n    return heights[0:3]",
+    "fixed": "def top_three_mountains(heights: list[int]) -> list[int]:\n    sorted_heights = sorted(heights, reverse=True)\n    return sorted_heights[:3]"
+  },
+  {
+    "problem_id": "p00002",
+    "problem_statement": "Write a program which computes the digit number of sum of two integers a and b.",
+    "function_signature": "def digit_number(a: int, b: int) -> int",
+    "baseline_tests": [
+      [5, 7, 2],
+      [1, 99, 3],
+      [1000, 999, 4],
+      [0, 0, 1],
+      [999999, 1, 7],
+      [500000, 500000, 7]
+    ],
+    "buggy": "import math\n\ndef digit_number(a: int, b: int) -> int:\n    ans = int(math.log10(a+b)+1)\n    return ans",
+    "fixed": "import math\n\ndef digit_number(a: int, b: int) -> int:\n    if a + b == 0:\n        return 1\n    ans = int(math.log10(a+b)+1)\n    return ans",
+    "reference_solution": "def digit_number(a: int, b: int) -> int:\n    return len(str(a + b))"
+  },
+  {
+    "problem_id": "p00003",
+    "problem_statement": "Write a program which judges whether given length of three sides form a right triangle. Return True if the given sides form a right triangle, False if not.",
+    "function_signature": "def is_right_triangle(sides: list[int]) -> bool",
+    "baseline_tests": [
+      [[4, 3, 5], True],
+      [[4, 3, 6], False],
+      [[8, 8, 8], False],
+      [[5, 3, 4], True],
+      [[13, 12, 5], True],
+      [[1, 1, 1], False],
+      [[6, 8, 10], True]
+    ],
+    "buggy": "def is_right_triangle(sides: list[int]) -> bool:\n    p = sorted(sides)\n    a = x[0]\n    b = x[1]\n    c = x[2]\n    if a*a + b*b == c*c:\n        return True\n    else:\n        return False",
+    "fixed": "def is_right_triangle(sides: list[int]) -> bool:\n    p = sorted(sides)\n    a = p[0]\n    b = p[1]\n    c = p[2]\n    if a*a + b*b == c*c:\n        return True\n    else:\n        return False",
+    "reference_solution": "def is_right_triangle(sides: list[int]) -> bool:\n    sorted_sides = sorted(sides)\n    return sorted_sides[0]**2 + sorted_sides[1]**2 == sorted_sides[2]**2"
+  },
+  {
+    "problem_id": "p00004",
+    "problem_statement": "Solve a simultaneous equation: ax + by = c, dx + ey = f. Return x and y rounded to 3 decimal places as a tuple.",
+    "function_signature": "def solve_simultaneous_equation(a: float, b: float, c: float, d: float, e: float, f: float) -> tuple[float, float]",
+    "baseline_tests": [
+      [1, 2, 3, 4, 5, 6, (-1.0, 2.0)],
+      [2, -1, -2, -1, -1, -5, (1.0, 4.0)],
+      [2, -1, -3, 1, -1, -3, (0.0, 3.0)],
+      [2, -1, -3, -9, 9, 27, (0.0, 3.0)]
+    ],
+    "buggy": "def solve_simultaneous_equation(a: float, b: float, c: float, d: float, e: float, f: float) -> tuple[float, float]:\n    buff = a*e - b*d\n    buff_a = a\n    \n    a_coef = e/buff\n    b_coef = -b/buff\n    d_coef = -d/buff\n    e_coef = buff_a/buff\n    \n    x = (a_coef*c) + (b_coef*f)\n    y = (d_coef*c) + (e_coef*f)\n    \n    return (round(x, 4), round(y, 4))",
+    "fixed": "def solve_simultaneous_equation(a: float, b: float, c: float, d: float, e: float, f: float) -> tuple[float, float]:\n    buff = a*e - b*d\n    buff_a = a\n    \n    a_coef = e/buff\n    b_coef = -b/buff\n    d_coef = -d/buff\n    e_coef = buff_a/buff\n    \n    x = (a_coef*c) + (b_coef*f)\n    y = (d_coef*c) + (e_coef*f)\n    \n    return (round(x, 3), round(y, 3))",
+    "reference_solution": "def solve_simultaneous_equation(a: float, b: float, c: float, d: float, e: float, f: float) -> tuple[float, float]:\n    # Using Cramer's rule\n    det = a*e - b*d\n    x = (c*e - b*f) / det\n    y = (a*f - c*d) / det\n    return (round(x, 3), round(y, 3))"
+  },
+  {
+    "problem_id": "p00005",
+    "problem_statement": "Write a program which computes the greatest common divisor (GCD) and the least common multiple (LCM) of given a and b.",
+    "function_signature": "def gcd_lcm(a: int, b: int) -> tuple[int, int]",
+    "baseline_tests": [
+      [8, 6, (2, 24)],
+      [50000000, 30000000, (10000000, 150000000)],
+      [12, 18, (6, 36)],
+      [7, 5, (1, 35)],
+      [100, 50, (50, 100)],
+      [1, 1000000000, (1, 1000000000)]
+    ],
+    "buggy": "def gcd_lcm(a: int, b: int) -> tuple[int, int]:\n    A, B = min(a, b), max(a, b)\n    \n    while True:\n        mod = B % A\n        if mod == 0:\n            gcd = B / A\n            break\n        else:\n            A, B = mod, A\n    \n    lcm = gcd * (a / gcd) * (b / gcd)\n    return (int(gcd), int(lcm))",
+    "fixed": "def gcd_lcm(a: int, b: int) -> tuple[int, int]:\n    A, B = min(a, b), max(a, b)\n    \n    while True:\n        mod = B % A\n        if mod == 0:\n            gcd = A\n            break\n        else:\n            A, B = mod, A\n    \n    lcm = gcd * (a // gcd) * (b // gcd)\n    return (int(gcd), int(lcm))",
+    "reference_solution": "import math\n\ndef gcd_lcm(a: int, b: int) -> tuple[int, int]:\n    gcd = math.gcd(a, b)\n    lcm = (a * b) // gcd\n    return (gcd, lcm)"
+  },
+  {
+    "problem_id": "p00006",
+    "problem_statement": "Write a program which reverses a given string str.",
+    "function_signature": "def reverse_string(s: str) -> str",
+    "baseline_tests": [
+      ["w32nimda", "admin23w"],
+      ["hello", "olleh"],
+      ["a", "a"],
+      ["racecar", "racecar"],
+      ["12345", "54321"],
+      ["Python", "nohtyP"]
+    ],
+    "buggy": "def reverse_string(s: str) -> str:\n    seq = s.split()\n    return seq[::-1]",
+    "fixed": "def reverse_string(s: str) -> str:\n    seq = s.strip()\n    return seq[::-1]",
+    "reference_solution": "def reverse_string(s: str) -> str:\n    return s[::-1]"
+  },
+  {
+    "problem_id": "p00007",
+    "problem_statement": "Your friend is borrowing 100,000-yen from a loan shark. The loan shark adds 5% interest of the debt and rounds it to the nearest 1,000 above week by week. Write a program which computes the amount of the debt in n weeks.",
+    "function_signature": "def debt_hell(n: int) -> int",
+    "baseline_tests": [
+      [0, 100000],
+      [1, 105000],
+      [2, 111000],
+      [5, 130000],
+      [10, 163000],
+      [20, 265000]
+    ],
+    "buggy": "import math\n\ndef debt_hell(n: int) -> int:\n    debt = 100\n    for i in range(n):\n        ceil = math.ceil(debt*1.05)\n    return debt*1000",
+    "fixed": "import math\n\ndef debt_hell(n: int) -> int:\n    debt = 100\n    for i in range(n):\n        debt = math.ceil(debt*1.05)\n    return debt*1000",
+    "reference_solution": "import math\n\ndef debt_hell(n: int) -> int:\n    debt = 100\n    for _ in range(n):\n        debt = math.ceil(debt * 1.05)\n    return debt * 1000"
+  },
+  {
+    "problem_id": "p00008",
+    "problem_statement": "Write a program which reads an integer n and identifies the number of combinations of a, b, c and d (0 ≤ a, b, c, d ≤ 9) which meet the following equality: a + b + c + d = n",
+    "function_signature": "def sum_of_4_integers(n: int) -> int",
+    "baseline_tests": [
+      [1, 4],
+      [35, 4],
+      [0, 1],
+      [36, 1],
+      [10, 220],
+      [20, 560],
+      [5, 56]
+    ],
+    "buggy": "def sum_of_4_integers(n: int) -> int:\n    x = [0] * 37\n    for a in range(10):\n        for b in range(10):\n            for c in range(10):\n                for d in range(10):\n                    x[a+b+c+d] += 1\n    return x[n]",
+    "fixed": "def sum_of_4_integers(n: int) -> int:\n    x = [0] * 51\n    for a in range(10):\n        for b in range(10):\n            for c in range(10):\n                for d in range(10):\n                    x[a+b+c+d] += 1\n    return x[n]",
+    "reference_solution": "def sum_of_4_integers(n: int) -> int:\n    count = 0\n    for a in range(10):\n        for b in range(10):\n            for c in range(10):\n                for d in range(10):\n                    if a + b + c + d == n:\n                        count += 1\n    return count"
+  },
+  {
+    "problem_id": "p00009",
+    "problem_statement": "Write a program which reads an integer n and prints the number of prime numbers which are less than or equal to n. A prime number is a natural number which has exactly two distinct natural number divisors: 1 and itself.",
+    "function_signature": "def count_primes(n: int) -> int",
+    "baseline_tests": [
+      [10, 4],
+      [3, 2],
+      [11, 5],
+      [1, 0],
+      [2, 1],
+      [100, 25],
+      [1000, 168]
+    ],
+    "buggy": "def count_primes(n: int) -> int:\n    size = 10**5\n    s = [True] * size\n    s[0] = False\n    s[1] = False\n    for x in range(2, int(size**0.5)+1):\n        if s[x]:\n            for i in range(x+x, size, x):\n                s[i] = False\n    cnt = 0\n    for i in range(n):\n        if s[i]:\n            cnt = cnt + 1\n    return cnt",
+    "fixed": "def count_primes(n: int) -> int:\n    size = 10**6\n    s = [True] * size\n    s[0] = False\n    s[1] = False\n    for x in range(2, int(size**0.5)+1):\n        if s[x]:\n            for i in range(x+x, size, x):\n                s[i] = False\n    cnt = 0\n    for i in range(n+1):\n        if s[i]:\n            cnt = cnt + 1\n    return cnt",
+    "reference_solution": "def count_primes(n: int) -> int:\n    if n < 2:\n        return 0\n    sieve = [True] * (n + 1)\n    sieve[0] = sieve[1] = False\n    for i in range(2, int(n**0.5) + 1):\n        if sieve[i]:\n            for j in range(i*i, n + 1, i):\n                sieve[j] = False\n    return sum(sieve)"
+  },
+  {
+    "problem_id": "p00010",
+    "problem_statement": "Write a program which prints the central coordinate (px, py) and the radius r of a circumscribed circle of a triangle which is constructed by three points (x1, y1), (x2, y2) and (x3, y3) on the plane surface.",
+    "function_signature": "def circumscribed_circle(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float) -> tuple[float, float, float]",
+    "baseline_tests": [
+      [0.0, 0.0, 2.0, 0.0, 2.0, 2.0, (1.0, 1.0, 1.414)],
+      [0.0, 0.0, 1.0, 0.0, 0.0, 1.0, (0.5, 0.5, 0.707)],
+      [0.0, 0.0, 3.0, 0.0, 0.0, 4.0, (1.5, 2.0, 2.5)],
+      [1.0, 1.0, 4.0, 1.0, 2.5, 4.0, (2.5, 2.5, 2.121)]
+    ],
+    "buggy": "import math\n\ndef circumscribed_circle(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float) -> tuple[float, float, float]:\n    a1 = 2.0*(x2-x1)\n    b1 = 2.0*(y2-y1)\n    x12 = x1**2\n    y12 = y1**2\n    c1 = x12-x2**2+y12+y2**2\n    a2 = 2.0*(x3-x1)\n    b2 = 2.0*(y3-y1)\n    c2 = x12-x3**2+y12-y3**2\n    denom = (a1*b2-a2*b1)\n    x = (b1*c2-b2*c1)/denom\n    y = (c1*a2-c2*a1)/denom\n    r = math.sqrt((x-x1)**2+(y-y1)**2)\n    return (round(x, 3), round(y, 3), round(r, 3))",
+    "fixed": "import math\n\ndef circumscribed_circle(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float) -> tuple[float, float, float]:\n    a1 = 2.0*(x2-x1)\n    b1 = 2.0*(y2-y1)\n    x12 = x1**2\n    y12 = y1**2\n    c1 = x12-x2**2+y12-y2**2\n    a2 = 2.0*(x3-x1)\n    b2 = 2.0*(y3-y1)\n    c2 = x12-x3**2+y12-y3**2\n    denom = (a1*b2-a2*b1)\n    x = (b1*c2-b2*c1)/denom\n    y = (c1*a2-c2*a1)/denom\n    r = math.sqrt((x-x1)**2+(y-y1)**2)\n    return (round(x, 3), round(y, 3), round(r, 3))",
+    "reference_solution": "import math\n\ndef circumscribed_circle(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float) -> tuple[float, float, float]:\n    a1 = 2.0*(x2-x1)\n    b1 = 2.0*(y2-y1)\n    c1 = x1**2 - x2**2 + y1**2 - y2**2\n    a2 = 2.0*(x3-x1)\n    b2 = 2.0*(y3-y1)\n    c2 = x1**2 - x3**2 + y1**2 - y3**2\n    denom = (a1*b2 - a2*b1)\n    px = (b1*c2 - b2*c1) / denom\n    py = (c1*a2 - c2*a1) / denom\n    r = math.sqrt((px-x1)**2 + (py-y1)**2)\n    return (round(px, 3), round(py, 3), round(r, 3))"
+  },
+  {
+    "problem_id": "p00012",
+    "problem_statement": "There is a triangle formed by three points (x1, y1), (x2, y2), (x3, y3) on a plain. Write a program which prints True if a point P (xp, yp) is in the triangle and False if not.",
+    "function_signature": "def point_in_triangle(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, xp: float, yp: float) -> bool",
+    "baseline_tests": [
+      [0.0, 0.0, 2.0, 0.0, 2.0, 2.0, 1.5, 0.5, True],
+      [0.0, 0.0, 1.0, 4.0, 5.0, 3.0, -1.0, 3.0, False],
+      [0.0, 0.0, 4.0, 0.0, 2.0, 3.0, 2.0, 1.0, True],
+      [0.0, 0.0, 4.0, 0.0, 2.0, 3.0, 4.0, 4.0, False]
+    ],
+    "buggy": "def point_in_triangle(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, xp: float, yp: float) -> bool:\n    def crossMulti(p1, p2):\n        return p1[0] * p2[1] - p1[1] * p2[0]\n    \n    Zd = []\n    Ps = [(x2-x1, y2-y1),(x3-x2, y3-y2),(x1-x3, y1-y3)]\n    Px = [(xp-x1, yp-y1),(xp-x2, yp-y2),(xp-x3, yp-y3)]\n    for p in range(3):\n        Zd.append(crossMulti(Ps[p], Px[p]))\n    Zd = [x > 0 for x in Zd]\n    \n    if (Zd[0] and Zd[1] and Zd[2]) or not(Zd[0] or Zd[1] or Zd[2]):\n        return 'Yes'\n    else:\n        return 'No'",
+    "fixed": "def point_in_triangle(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, xp: float, yp: float) -> bool:\n    def crossMulti(p1, p2):\n        return p1[0] * p2[1] - p1[1] * p2[0]\n    \n    Zd = []\n    Ps = [(x2-x1, y2-y1),(x3-x2, y3-y2),(x1-x3, y1-y3)]\n    Px = [(xp-x1, yp-y1),(xp-x2, yp-y2),(xp-x3, yp-y3)]\n    for p in range(3):\n        Zd.append(crossMulti(Ps[p], Px[p]))\n    Zd = [x > 0 for x in Zd]\n    \n    if (Zd[0] and Zd[1] and Zd[2]) or not(Zd[0] or Zd[1] or Zd[2]):\n        return True\n    else:\n        return False",
+    "reference_solution": "def point_in_triangle(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, xp: float, yp: float) -> bool:\n    def sign(px, py, ax, ay, bx, by):\n        return (px - bx) * (ay - by) - (ax - bx) * (py - by)\n    \n    d1 = sign(xp, yp, x1, y1, x2, y2)\n    d2 = sign(xp, yp, x2, y2, x3, y3)\n    d3 = sign(xp, yp, x3, y3, x1, y1)\n    \n    has_neg = (d1 < 0) or (d2 < 0) or (d3 < 0)\n    has_pos = (d1 > 0) or (d2 > 0) or (d3 > 0)\n    \n    return not (has_neg and has_pos)"
+  },
+  {
+    "problem_id": "p00013",
+    "problem_statement": "Simulate the movement of railroad cars. An entry of a car is represented by its number (1-10). An exit of a car is represented by 0. The program should read the sequence of car numbers and 0, and return the list of car numbers that exit in order.",
+    "function_signature": "def switching_railroad_cars(operations: list[int]) -> list[int]",
+    "baseline_tests": [
+      [[1, 6, 0, 8, 10, 0, 0, 0], [6, 10, 8, 1]],
+      [[1, 0], [1]],
+      [[1, 2, 3, 0, 0, 0], [3, 2, 1]],
+      [[5, 3, 0, 7, 0, 0], [3, 7, 5]]
+    ],
+    "buggy": "def switching_railroad_cars(operations: list[int]) -> list[int]:\n    cars = []\n    result = []\n    for car in operations:\n        if car:\n            cars.append(num)\n        else:\n            result.append(cars.pop())\n    return result",
+    "fixed": "def switching_railroad_cars(operations: list[int]) -> list[int]:\n    cars = []\n    result = []\n    for car in operations:\n        if car:\n            cars.append(car)\n        else:\n            result.append(cars.pop())\n    return result",
+    "reference_solution": "def switching_railroad_cars(operations: list[int]) -> list[int]:\n    stack = []\n    result = []\n    for op in operations:\n        if op == 0:\n            result.append(stack.pop())\n        else:\n            stack.append(op)\n    return result"
+  },
+  {
+    "problem_id": "p00014",
+    "problem_statement": "Write a program which computes the approximative area of a shape represented by y = x^2, y = 0, and x = 600 using rectangles of width d.",
+    "function_signature": "def integral_approximation(d: int) -> int",
+    "baseline_tests": [
+      [20, 68440000],
+      [10, 70210000],
+      [100, 60810000],
+      [50, 66250000],
+      [30, 67594000]
+    ],
+    "buggy": "def integral_approximation(d: int) -> int:\n    sum = 0\n    for x in range(d, 600, d):\n        sum += (x**2)*d\n    return s",
+    "fixed": "def integral_approximation(d: int) -> int:\n    sum = 0\n    for x in range(d, 600, d):\n        sum += (x**2)*d\n    return sum",
+    "reference_solution": "def integral_approximation(d: int) -> int:\n    area = 0\n    for x in range(d, 600, d):\n        area += (x**2) * d\n    return area"
+  },
+  {
+    "problem_id": "p00015",
+    "problem_statement": "Write a program which reads two integers (more than or equal to zero), and returns the sum of these integers as a string. If given integers or the sum have more than 80 digits, return 'overflow'.",
+    "function_signature": "def national_budget(a: int, b: int) -> str",
+    "baseline_tests": [
+      [1000, 800, "1800"],
+      [9999999999999999999999999999999999999999, 1, "10000000000000000000000000000000000000000"],
+      [99999999999999999999999999999999999999999999999999999999999999999999999999999999, 1, "overflow"],
+      [99999999999999999999999999999999999999999999999999999999999999999999999999999999, 0, "99999999999999999999999999999999999999999999999999999999999999999999999999999999"],
+      [100000000000000000000000000000000000000000000000000000000000000000000000000000000, 1, "overflow"],
+      [100000000000000000000000000000000000000000000000000000000000000000000000000000000, 100000000000000000000000000000000000000000000000000000000000000000000000000000000, "overflow"]
+    ],
+    "buggy": "def national_budget(a: int, b: int) -> str:\n    result = a + b\n    if len(str(a)) > 80 or len(str(b)) > 80 or len(str(result)) < 80:\n        return \"overflow\"\n    return str(result)",
+    "fixed": "def national_budget(a: int, b: int) -> str:\n    result = a + b\n    if len(str(a)) > 80 or len(str(b)) > 80 or len(str(result)) > 80:\n        return \"overflow\"\n    return str(result)",
+    "reference_solution": "def national_budget(a: int, b: int) -> str:\n    if len(str(a)) > 80 or len(str(b)) > 80:\n        return \"overflow\"\n    result = a + b\n    if len(str(result)) > 80:\n        return \"overflow\"\n    return str(result)"
+  },
+  {
+    "problem_id": "p00016",
+    "problem_statement": "Treasure Hunt: Starting from origin (0,0) facing north, follow a sequence of instructions. Each instruction has distance d and turn angle t. Go d steps forward, then turn clockwise by t degrees. Return the final position truncated to integers.",
+    "function_signature": "def treasure_hunt(instructions: list[tuple[int, int]]) -> tuple[int, int]",
+    "baseline_tests": [
+      [[(56, 65), (97, 54), (64, -4), (55, 76), (42, -27), (43, 80), (87, -86), (55, -6), (89, 34), (95, 5)], (171, -302)],
+      [[(10, 0), (10, 90), (10, 90), (10, 90)], (10, 0)],
+      [[(100, 45), (100, 45), (100, 45)], (70, 70)],
+      [[(50, 0)], (0, 50)]
+    ],
+    "buggy": "import math\n\ndef treasure_hunt(instructions: list[tuple[int, int]]) -> tuple[int, int]:\n    now_r = 0\n    now_x = 0\n    now_y = 0\n    \n    for n, r in instructions:\n        now_x += n * math.sin((now_r/180.0) * math.pi)\n        now_y += n * math.cos((now_r/180.0) * math.pi)\n        now_r += r\n    \n    return (math.floor(now_x), math.floor(now_y))",
+    "fixed": "import math\n\ndef treasure_hunt(instructions: list[tuple[int, int]]) -> tuple[int, int]:\n    now_r = 0\n    now_x = 0\n    now_y = 0\n    \n    for n, r in instructions:\n        now_x += n * math.sin((now_r/180.0) * math.pi)\n        now_y += n * math.cos((now_r/180.0) * math.pi)\n        now_r += r\n    \n    return (int(now_x), int(now_y))",
+    "reference_solution": "import math\n\ndef treasure_hunt(instructions: list[tuple[int, int]]) -> tuple[int, int]:\n    angle = 0  # degrees, 0 = north\n    x, y = 0.0, 0.0\n    \n    for distance, turn in instructions:\n        # Move forward in current direction\n        rad = math.radians(angle)\n        x += distance * math.sin(rad)\n        y += distance * math.cos(rad)\n        # Turn clockwise\n        angle += turn\n    \n    return (int(x), int(y))"
+  },
+  {
+    "problem_id": "p00018",
+    "problem_statement": "Write a program which reads five numbers and sorts them in descending order, returning them as a list.",
+    "function_signature": "def sort_five_numbers(numbers: list[int]) -> list[int]",
+    "baseline_tests": [
+      [[3, 6, 9, 7, 5], [9, 7, 6, 5, 3]],
+      [[1, 2, 3, 4, 5], [5, 4, 3, 2, 1]],
+      [[5, 5, 5, 5, 5], [5, 5, 5, 5, 5]],
+      [[-1, -5, 0, 3, 2], [3, 2, 0, -1, -5]],
+      [[100, 200, 50, 75, 125], [200, 125, 100, 75, 50]]
+    ],
+    "buggy": "def sort_five_numbers(numbers: list[int]) -> list[int]:\n    n = numbers.copy()\n    n.sort(revers=True)\n    return n",
+    "fixed": "def sort_five_numbers(numbers: list[int]) -> list[int]:\n    n = numbers.copy()\n    n.sort(reverse=True)\n    return n",
+    "reference_solution": "def sort_five_numbers(numbers: list[int]) -> list[int]:\n    return sorted(numbers, reverse=True)"
+  },
+  {
+    "problem_id": "p00019",
+    "problem_statement": "Write a program which reads an integer n and returns the factorial of n.",
+    "function_signature": "def factorial(n: int) -> int",
+    "baseline_tests": [
+      [5, 120],
+      [1, 1],
+      [10, 3628800],
+      [3, 6],
+      [7, 5040],
+      [20, 2432902008176640000]
+    ],
+    "buggy": "def factorial(n: int) -> int:\n    tmp = 1\n    for i in range(1, n+1):\n        n *= i\n    return n",
+    "fixed": "def factorial(n: int) -> int:\n    tmp = 1\n    for i in range(1, n+1):\n        tmp *= i\n    return tmp",
+    "reference_solution": "def factorial(n: int) -> int:\n    result = 1\n    for i in range(1, n+1):\n        result *= i\n    return result"
+  },
+  {
+    "problem_id": "p00020",
+    "problem_statement": "Write a program which replaces all the lower-case letters of a given text with the corresponding capital letters.",
+    "function_signature": "def capitalize_text(text: str) -> str",
+    "baseline_tests": [
+      ["this is a pen.", "THIS IS A PEN."],
+      ["hello world", "HELLO WORLD"],
+      ["Python Programming", "PYTHON PROGRAMMING"],
+      ["abc123xyz", "ABC123XYZ"],
+      ["ALREADY CAPS", "ALREADY CAPS"]
+    ],
+    "buggy": "def capitalize_text(text: str) -> str:\n    return text.lower()",
+    "fixed": "def capitalize_text(text: str) -> str:\n    return text.upper()",
+    "reference_solution": "def capitalize_text(text: str) -> str:\n    return text.upper()"
+  },
+  {
+    "problem_id": "p00021",
+    "problem_statement": "There are four points: A(x1, y1), B(x2, y2), C(x3, y3), and D(x4, y4). Write a program which determines whether the line AB and the line CD are parallel. Return True if parallel, False otherwise.",
+    "function_signature": "def are_lines_parallel(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, x4: float, y4: float) -> bool",
+    "baseline_tests": [
+      [0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 2.0, 1.0, True],
+      [3.0, 2.0, 9.0, 6.0, 13.0, 5.0, 7.0, 9.0, False],
+      [0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, True],
+      [0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, False],
+      [1.0, 1.0, 2.0, 2.0, 3.0, 3.0, 4.0, 4.0, True]
+    ],
+    "buggy": "def are_lines_parallel(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, x4: float, y4: float) -> bool:\n    data = [x1, y1, x2, y2, x3, y3, x4, y4]\n    slopes = []\n    for i in range(2):\n        _x1 = data.pop(0)\n        _y1 = data.pop(0)\n        _x2 = data.pop(0)\n        _y2 = data.pop(0)\n        \n        if _x1 != _x2:\n            slopes.append((_y1 - _y2)/(_x1 - _x2))\n    \n    if len(slopes) == 0:\n        return True\n    elif len(slopes) == 1:\n        return False\n    elif abs(slopes[0] - slopes[1]) < 1e-10:\n        return True\n    else:\n        return False",
+    "fixed": "def are_lines_parallel(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, x4: float, y4: float) -> bool:\n    data = list([x1, y1, x2, y2, x3, y3, x4, y4])\n    slopes = []\n    for i in range(2):\n        _x1 = data.pop(0)\n        _y1 = data.pop(0)\n        _x2 = data.pop(0)\n        _y2 = data.pop(0)\n        \n        if _x1 != _x2:\n            slopes.append((_y1 - _y2)/(_x1 - _x2))\n    \n    if len(slopes) == 0:\n        return True\n    elif len(slopes) == 1:\n        return False\n    elif abs(slopes[0] - slopes[1]) < 1e-10:\n        return True\n    else:\n        return False",
+    "reference_solution": "def are_lines_parallel(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, x4: float, y4: float) -> bool:\n    # Check if both lines are vertical\n    if x1 == x2 and x3 == x4:\n        return True\n    # If only one is vertical\n    if x1 == x2 or x3 == x4:\n        return False\n    # Calculate slopes\n    slope1 = (y2 - y1) / (x2 - x1)\n    slope2 = (y4 - y3) / (x4 - x3)\n    # Compare slopes with tolerance\n    return abs(slope1 - slope2) < 1e-10"
+  },
+  {
+    "problem_id": "p00022",
+    "problem_statement": "Given a sequence of numbers, find the maximum sum of a contiguous subsequence of those numbers. Note that a subsequence of one element is also a contiguous subsequence.",
+    "function_signature": "def maximum_sum_sequence(numbers: list[int]) -> int",
+    "baseline_tests": [
+      [[-5, -1, 6, 4, 9, -6, -7], 19],
+      [[1, 2, 3, 2, -2, -1, 1, 2, 3, 2, 1, -2, 1], 14],
+      [[1000, -200, 201], 1001],
+      [[-1, -2, -3], -1],
+      [[5], 5],
+      [[1, 2, 3, 4, 5], 15],
+      [[-1, 2, -1, 3, -1], 4]
+    ],
+    "buggy": "def maximum_sum_sequence(numbers: list[int]) -> int:\n    n = len(numbers)\n    A = numbers\n    if all(a <= 0 for a in A):\n        return max(a)\n    \n    r = 0\n    tmp = 0\n    ans = 0\n    while r < n:\n        tmp += A[r]\n        if tmp < 0:\n            l = r\n            tmp = 0\n        else:\n            ans = max(ans, tmp)\n        r += 1\n    return ans",
+    "fixed": "def maximum_sum_sequence(numbers: list[int]) -> int:\n    n = len(numbers)\n    A = numbers\n    if all(a <= 0 for a in A):\n        return max(A)\n    \n    r = 0\n    tmp = 0\n    ans = 0\n    while r < n:\n        tmp += A[r]\n        if tmp < 0:\n            l = r\n            tmp = 0\n        else:\n            ans = max(ans, tmp)\n        r += 1\n    return ans",
+    "reference_solution": "def maximum_sum_sequence(numbers: list[int]) -> int:\n    max_sum = numbers[0]\n    current_sum = 0\n    for num in numbers:\n        current_sum = max(num, current_sum + num)\n        max_sum = max(max_sum, current_sum)\n    return max_sum"
+  },
+  {
+    "problem_id": "p00023",
+    "problem_statement": "You are given circle A with radius ra and central coordinate (xa, ya) and circle B with radius rb and central coordinate (xb, yb). Return: 2 if B is in A, -2 if A is in B, 1 if circumferences intersect, and 0 if they do not overlap.",
+    "function_signature": "def circles_intersection(xa: float, ya: float, ra: float, xb: float, yb: float, rb: float) -> int",
+    "baseline_tests": [
+      [0.0, 0.0, 5.0, 0.0, 0.0, 4.0, 2],
+      [0.0, 0.0, 2.0, 4.1, 0.0, 2.0, 0],
+      [0.0, 0.0, 3.0, 1.0, 0.0, 1.0, 1],
+      [0.0, 0.0, 2.0, 0.0, 0.0, 5.0, -2],
+      [0.0, 0.0, 3.0, 3.0, 4.0, 2.0, 1]
+    ],
+    "buggy": "import math\n\ndef circles_intersection(xa: float, ya: float, ra: float, xb: float, yb: float, rb: float) -> int:\n    d1 = (xa - xb) ** 2 + (ya - yb) ** 2\n    d2 = ra ** 2 + rb ** 2\n    dr = (ra - rb) ** 2\n    \n    if d1 <= d2:\n        if dr >= d1:\n            return 2 if ra > rb else -2\n        else:\n            return 1\n    else:\n        return 0",
+    "fixed": "import math\n\ndef circles_intersection(xa: float, ya: float, ra: float, xb: float, yb: float, rb: float) -> int:\n    d1 = (xa - xb) ** 2 + (ya - yb) ** 2\n    d2 = (ra + rb) ** 2\n    dr = (ra - rb) ** 2\n    \n    if d1 <= d2:\n        if dr > d1:\n            return 2 if ra > rb else -2\n        else:\n            return 1\n    else:\n        return 0",
+    "reference_solution": "import math\n\ndef circles_intersection(xa: float, ya: float, ra: float, xb: float, yb: float, rb: float) -> int:\n    dist = math.sqrt((xa - xb)**2 + (ya - yb)**2)\n    \n    # One circle contains the other\n    if dist < abs(ra - rb):\n        return 2 if ra > rb else -2\n    # Circles are separate\n    elif dist > ra + rb:\n        return 0\n    # Circles intersect\n    else:\n        return 1"
+  },
+  {
+    "problem_id": "p00024",
+    "problem_statement": "A person is trying to drop a glass ball to check if it will crack. Given the minimum velocity v to crack the ball, return the lowest possible floor of a building to crack the ball. The height of the N floor is defined by 5*N - 5. Use formulas: v = 9.8*t and y = 4.9*t^2.",
+    "function_signature": "def physical_experiments(v: float) -> int",
+    "baseline_tests": [
+      [25.4, 8],
+      [0.1, 1],
+      [50.0, 26],
+      [10.0, 3],
+      [20.0, 5]
+    ],
+    "buggy": "import math\n\ndef physical_experiments(v: float) -> int:\n    return int(math.ceil(v**2 * 0.01) + 1)",
+    "fixed": "import math\n\ndef physical_experiments(v: float) -> int:\n    return int(math.ceil(v**2 * 0.01020408163265306122448979591837) + 1)",
+    "reference_solution": "import math\n\ndef physical_experiments(v: float) -> int:\n    # v = 9.8*t => t = v/9.8\n    # y = 4.9*t^2 = 4.9*(v/9.8)^2 = v^2/19.6\n    # Height of floor N: h = 5*N - 5\n    # Need: y >= h => v^2/19.6 >= 5*N - 5\n    # N >= (v^2/19.6 + 5) / 5 = v^2/98 + 1\n    return int(math.ceil(v**2 / 98) + 1)"
+  },
+  {
+    "problem_id": "p00025",
+    "problem_statement": "Hit and Blow game. A imagines four numbers and B guesses. Return the number of Hit (same place) and Blow (included but different place) as a tuple.",
+    "function_signature": "def hit_and_blow(a: list[int], b: list[int]) -> tuple[int, int]",
+    "baseline_tests": [
+      [[9, 1, 8, 2], [4, 1, 5, 9], (1, 1)],
+      [[4, 6, 8, 2], [4, 6, 3, 2], (3, 0)],
+      [[1, 2, 3, 4], [1, 2, 3, 4], (4, 0)],
+      [[1, 2, 3, 4], [5, 6, 7, 8], (0, 0)],
+      [[1, 2, 3, 4], [4, 3, 2, 1], (0, 4)]
+    ],
+    "buggy": "def hit_and_blow(a: list[int], b: list[int]) -> tuple[int, int]:\n    A = [str(x) for x in a]\n    B = [str(x) for x in b]\n    hit = sum([1 for i in range(len(A)) if A[i] == B[i]])\n    blow = sum([1 for i in range(len(A)) if B[i] in A])\n    return (hit, blow)",
+    "fixed": "def hit_and_blow(a: list[int], b: list[int]) -> tuple[int, int]:\n    A = [str(x) for x in a]\n    B = [str(x) for x in b]\n    hit = sum([1 for i in range(len(A)) if A[i] == B[i]])\n    blow = sum([1 for i in range(len(A)) if B[i] in A]) - hit\n    return (hit, blow)",
+    "reference_solution": "def hit_and_blow(a: list[int], b: list[int]) -> tuple[int, int]:\n    hit = sum(1 for i in range(len(a)) if a[i] == b[i])\n    blow = sum(1 for i in range(len(a)) if b[i] in a and a[i] != b[i])\n    return (hit, blow)"
+  },
+  {
+    "problem_id": "p00026",
+    "problem_statement": "Dropping ink on a 10x10 grid. Each drop has size (1=Small, 2=Medium, 3=Large) and affects surrounding cells. Return tuple of (number of cells with density 0, maximum density value).",
+    "function_signature": "def dropping_ink(drops: list[tuple[int, int, int]]) -> tuple[int, int]",
+    "baseline_tests": [
+      [[(2, 5, 3), (3, 6, 1), (3, 4, 2), (4, 5, 2), (3, 6, 3), (2, 4, 1)], (77, 5)],
+      [[(0, 0, 1)], (95, 1)],
+      [[(5, 5, 3)], (87, 1)],
+      [[(0, 0, 1), (0, 0, 1)], (95, 2)]
+    ],
+    "buggy": "def dropping_ink(drops: list[tuple[int, int, int]]) -> tuple[int, int]:\n    MAPSIZE = 10\n    cells = [[0 for _ in range(MAPSIZE)] for _ in range(MAPSIZE)]\n    \n    def small_inc(x, y):\n        cells[x][y] += 1\n        if y > 0: cells[x][y-1] += 1\n        if x > 0: cells[x-1][y] += 1\n        if x < MAPSIZE-1: cells[x+1][y] += 1\n        if y < MAPSIZE-1: cells[x][y+1] += 1\n    \n    def medium_inc(x, y):\n        if y > 0:\n            cells[x][y-1] += 1\n            if x > 0: cells[x-1][y-1] += 1\n            if x < MAPSIZE-1: cells[x+1][y-1] += 1\n        cells[x][y] += 1\n        if x > 0: cells[x-1][y] += 1\n        if x < MAPSIZE-1: cells[x+1][y] += 1\n        if y < MAPSIZE-1:\n            cells[x][y-1] += 1\n            if x > 0: cells[x-1][y+1] += 1\n            if x < MAPSIZE-1: cells[x+1][y+1] += 1\n    \n    def large_inc(x, y):\n        if y > 1: cells[x][y-2] += 1\n        if y > 0:\n            cells[x][y-1] += 1\n            if x > 0: cells[x-1][y-1] += 1\n            if x < MAPSIZE-1: cells[x+1][y-1] += 1\n        cells[x][y] += 1\n        if x > 1: cells[x-2][y] += 1\n        if x > 0: cells[x-1][y] += 1\n        if x < MAPSIZE-1: cells[x+1][y] += 1\n        if x < MAPSIZE-2: cells[x+2][y] += 1\n        if y < MAPSIZE-1:\n            cells[x][y-1] += 1\n            if x > 0: cells[x-1][y+1] += 1\n            if x < MAPSIZE-1: cells[x+1][y+1] += 1\n        if y < MAPSIZE-2: cells[x][y+2] += 1\n    \n    for x, y, size in drops:\n        if size == 1:\n            small_inc(x, y)\n        elif size == 2:\n            medium_inc(x, y)\n        elif size == 3:\n            large_inc(x, y)\n    \n    count = max_d = 0\n    for i in range(MAPSIZE):\n        for j in range(MAPSIZE):\n            if cells[i][j] == 0:\n                count += 1\n            else:\n                max_d = max(max_d, cells[i][j])\n    return (count, max_d)",
+    "fixed": "def dropping_ink(drops: list[tuple[int, int, int]]) -> tuple[int, int]:\n    MAPSIZE = 10\n    cells = [[0 for _ in range(MAPSIZE)] for _ in range(MAPSIZE)]\n    \n    def small_inc(x, y):\n        cells[x][y] += 1\n        if y > 0: cells[x][y-1] += 1\n        if x > 0: cells[x-1][y] += 1\n        if x < MAPSIZE-1: cells[x+1][y] += 1\n        if y < MAPSIZE-1: cells[x][y+1] += 1\n    \n    def medium_inc(x, y):\n        if y > 0:\n            cells[x][y-1] += 1\n            if x > 0: cells[x-1][y-1] += 1\n            if x < MAPSIZE-1: cells[x+1][y-1] += 1\n        cells[x][y] += 1\n        if x > 0: cells[x-1][y] += 1\n        if x < MAPSIZE-1: cells[x+1][y] += 1\n        if y < MAPSIZE-1:\n            cells[x][y+1] += 1\n            if x > 0: cells[x-1][y+1] += 1\n            if x < MAPSIZE-1: cells[x+1][y+1] += 1\n    \n    def large_inc(x, y):\n        if y > 1: cells[x][y-2] += 1\n        if y > 0:\n            cells[x][y-1] += 1\n            if x > 0: cells[x-1][y-1] += 1\n            if x < MAPSIZE-1: cells[x+1][y-1] += 1\n        cells[x][y] += 1\n        if x > 1: cells[x-2][y] += 1\n        if x > 0: cells[x-1][y] += 1\n        if x < MAPSIZE-1: cells[x+1][y] += 1\n        if x < MAPSIZE-2: cells[x+2][y] += 1\n        if y < MAPSIZE-1:\n            cells[x][y+1] += 1\n            if x > 0: cells[x-1][y+1] += 1\n            if x < MAPSIZE-1: cells[x+1][y+1] += 1\n        if y < MAPSIZE-2: cells[x][y+2] += 1\n    \n    for x, y, size in drops:\n        if size == 1:\n            small_inc(x, y)\n        elif size == 2:\n            medium_inc(x, y)\n        elif size == 3:\n            large_inc(x, y)\n    \n    count = max_d = 0\n    for i in range(MAPSIZE):\n        for j in range(MAPSIZE):\n            if cells[i][j] == 0:\n                count += 1\n            else:\n                max_d = max(max_d, cells[i][j])\n    return (count, max_d)",
+    "reference_solution": "def dropping_ink(drops: list[tuple[int, int, int]]) -> tuple[int, int]:\n    MAPSIZE = 10\n    cells = [[0] * MAPSIZE for _ in range(MAPSIZE)]\n    \n    patterns = {\n        1: [(0, 0), (0, -1), (-1, 0), (1, 0), (0, 1)],\n        2: [(0, 0), (0, -1), (-1, -1), (1, -1), (-1, 0), (1, 0), (0, 1), (-1, 1), (1, 1)],\n        3: [(0, 0), (0, -2), (0, -1), (-1, -1), (1, -1), (-2, 0), (-1, 0), (1, 0), (2, 0), (0, 1), (-1, 1), (1, 1), (0, 2)]\n    }\n    \n    for x, y, size in drops:\n        for dx, dy in patterns[size]:\n            nx, ny = x + dx, y + dy\n            if 0 <= nx < MAPSIZE and 0 <= ny < MAPSIZE:\n                cells[nx][ny] += 1\n    \n    count = sum(1 for row in cells for cell in row if cell == 0)\n    max_d = max(max(row) for row in cells) if any(any(row) for row in cells) else 0\n    return (count, max_d)"
+  }
+]
