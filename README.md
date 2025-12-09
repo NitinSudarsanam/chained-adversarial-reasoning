@@ -1,6 +1,6 @@
 # Chained Adversarial Reasoning for Code Generation
 
-## 🧠 What Is This?
+## What Is This?
 
 Current language models can write code, but they often:
 - Jump straight to implementation without showing their reasoning
@@ -10,7 +10,7 @@ Current language models can write code, but they often:
 
 This project addresses these issues through **adversarial multi-stage reasoning** - a reinforcement learning system where two AI models compete to make each other better at coding.
 
-## 💡 Core Idea
+## Core Idea
 
 ### The Multi-Stage Reasoning Approach
 
@@ -57,7 +57,7 @@ They improve through competition:
 - The model learns problem-solving methodology, not just code patterns
 - Edge cases and invariants are considered before writing code
 
-## 🎯 Project Goal
+## Project Goal
 
 Create LLMs that produce more robust, well-reasoned code by:
 1. **Structured reasoning** - Breaking down problem-solving into explicit stages
@@ -66,7 +66,7 @@ Create LLMs that produce more robust, well-reasoned code by:
 
 The result: Models that don't just memorize solutions, but actually learn to reason about problems systematically and defensively.
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -124,7 +124,7 @@ The result: Models that don't just memorize solutions, but actually learn to rea
 
 5. **PPO Training**: Proximal Policy Optimization with clipped surrogate objective
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
@@ -186,7 +186,7 @@ class TrainingConfig:
     temperature: float = 0.7
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 chained-adversarial-reasoning/
@@ -234,7 +234,7 @@ chained-adversarial-reasoning/
 └── requirements.txt               # Python dependencies
 ```
 
-## 🔬 Technical Deep Dive
+## Technical Deep Dive
 
 ### Multi-Stage Reasoning
 
@@ -373,7 +373,7 @@ metadata = checkpoint_manager.load_checkpoint(
 print(f"Loaded checkpoint from stage {metadata['stage']}, epoch {metadata['epoch']}")
 ```
 
-## 📊 Monitoring Training
+## Monitoring Training
 
 ### Debugging Model Outputs
 
@@ -412,7 +412,7 @@ Use `CheckpointManager` to load checkpoints for inference or resume training. - 
   - `test_validity`: Percentage of syntactically valid tests
   - `bug_catch_rate`: Percentage of tests that fail on generator's code
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Out of Memory (OOM)
 
@@ -461,7 +461,7 @@ The system includes extensive logging for empty outputs:
    config.n_discriminator_steps = 5  # vs 10
    ```
 
-## 📚 Key Concepts
+## Key Concepts
 
 ### Why Multi-Stage Reasoning?
 
@@ -485,7 +485,7 @@ Breaking problem-solving into stages:
 3. **Proven** - Successfully used in AlphaGo, ChatGPT, etc.
 4. **On-policy** - Directly optimizes the policy we care about
 
-## 🤝 Contributing
+## Contributing
 
 Contributions welcome! Areas for improvement:
 
@@ -498,18 +498,18 @@ Contributions welcome! Areas for improvement:
 - [ ] Add baseline comparisons (without reasoning stages)
 - [ ] Implement value function for advantage estimation
 
-## 📄 License
+## License
 
 MIT License - see LICENSE file for details
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **PEFT** library for LoRA implementation
 - **HuggingFace** for model hosting and transformers library
 - **Qwen** for the excellent Coder models
 - **OpenAI** for PPO algorithm research
 
-## 📧 Contact
+## Contact
 
 For questions or issues, please open a GitHub issue or contact the maintainer.
 
