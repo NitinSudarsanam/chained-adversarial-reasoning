@@ -372,5 +372,158 @@
     "buggy": "def dropping_ink(drops: list[tuple[int, int, int]]) -> tuple[int, int]:\n    MAPSIZE = 10\n    cells = [[0 for _ in range(MAPSIZE)] for _ in range(MAPSIZE)]\n    \n    def small_inc(x, y):\n        cells[x][y] += 1\n        if y > 0: cells[x][y-1] += 1\n        if x > 0: cells[x-1][y] += 1\n        if x < MAPSIZE-1: cells[x+1][y] += 1\n        if y < MAPSIZE-1: cells[x][y+1] += 1\n    \n    def medium_inc(x, y):\n        if y > 0:\n            cells[x][y-1] += 1\n            if x > 0: cells[x-1][y-1] += 1\n            if x < MAPSIZE-1: cells[x+1][y-1] += 1\n        cells[x][y] += 1\n        if x > 0: cells[x-1][y] += 1\n        if x < MAPSIZE-1: cells[x+1][y] += 1\n        if y < MAPSIZE-1:\n            cells[x][y-1] += 1\n            if x > 0: cells[x-1][y+1] += 1\n            if x < MAPSIZE-1: cells[x+1][y+1] += 1\n    \n    def large_inc(x, y):\n        if y > 1: cells[x][y-2] += 1\n        if y > 0:\n            cells[x][y-1] += 1\n            if x > 0: cells[x-1][y-1] += 1\n            if x < MAPSIZE-1: cells[x+1][y-1] += 1\n        cells[x][y] += 1\n        if x > 1: cells[x-2][y] += 1\n        if x > 0: cells[x-1][y] += 1\n        if x < MAPSIZE-1: cells[x+1][y] += 1\n        if x < MAPSIZE-2: cells[x+2][y] += 1\n        if y < MAPSIZE-1:\n            cells[x][y-1] += 1\n            if x > 0: cells[x-1][y+1] += 1\n            if x < MAPSIZE-1: cells[x+1][y+1] += 1\n        if y < MAPSIZE-2: cells[x][y+2] += 1\n    \n    for x, y, size in drops:\n        if size == 1:\n            small_inc(x, y)\n        elif size == 2:\n            medium_inc(x, y)\n        elif size == 3:\n            large_inc(x, y)\n    \n    count = max_d = 0\n    for i in range(MAPSIZE):\n        for j in range(MAPSIZE):\n            if cells[i][j] == 0:\n                count += 1\n            else:\n                max_d = max(max_d, cells[i][j])\n    return (count, max_d)",
     "fixed": "def dropping_ink(drops: list[tuple[int, int, int]]) -> tuple[int, int]:\n    MAPSIZE = 10\n    cells = [[0 for _ in range(MAPSIZE)] for _ in range(MAPSIZE)]\n    \n    def small_inc(x, y):\n        cells[x][y] += 1\n        if y > 0: cells[x][y-1] += 1\n        if x > 0: cells[x-1][y] += 1\n        if x < MAPSIZE-1: cells[x+1][y] += 1\n        if y < MAPSIZE-1: cells[x][y+1] += 1\n    \n    def medium_inc(x, y):\n        if y > 0:\n            cells[x][y-1] += 1\n            if x > 0: cells[x-1][y-1] += 1\n            if x < MAPSIZE-1: cells[x+1][y-1] += 1\n        cells[x][y] += 1\n        if x > 0: cells[x-1][y] += 1\n        if x < MAPSIZE-1: cells[x+1][y] += 1\n        if y < MAPSIZE-1:\n            cells[x][y+1] += 1\n            if x > 0: cells[x-1][y+1] += 1\n            if x < MAPSIZE-1: cells[x+1][y+1] += 1\n    \n    def large_inc(x, y):\n        if y > 1: cells[x][y-2] += 1\n        if y > 0:\n            cells[x][y-1] += 1\n            if x > 0: cells[x-1][y-1] += 1\n            if x < MAPSIZE-1: cells[x+1][y-1] += 1\n        cells[x][y] += 1\n        if x > 1: cells[x-2][y] += 1\n        if x > 0: cells[x-1][y] += 1\n        if x < MAPSIZE-1: cells[x+1][y] += 1\n        if x < MAPSIZE-2: cells[x+2][y] += 1\n        if y < MAPSIZE-1:\n            cells[x][y+1] += 1\n            if x > 0: cells[x-1][y+1] += 1\n            if x < MAPSIZE-1: cells[x+1][y+1] += 1\n        if y < MAPSIZE-2: cells[x][y+2] += 1\n    \n    for x, y, size in drops:\n        if size == 1:\n            small_inc(x, y)\n        elif size == 2:\n            medium_inc(x, y)\n        elif size == 3:\n            large_inc(x, y)\n    \n    count = max_d = 0\n    for i in range(MAPSIZE):\n        for j in range(MAPSIZE):\n            if cells[i][j] == 0:\n                count += 1\n            else:\n                max_d = max(max_d, cells[i][j])\n    return (count, max_d)",
     "reference_solution": "def dropping_ink(drops: list[tuple[int, int, int]]) -> tuple[int, int]:\n    MAPSIZE = 10\n    cells = [[0] * MAPSIZE for _ in range(MAPSIZE)]\n    \n    patterns = {\n        1: [(0, 0), (0, -1), (-1, 0), (1, 0), (0, 1)],\n        2: [(0, 0), (0, -1), (-1, -1), (1, -1), (-1, 0), (1, 0), (0, 1), (-1, 1), (1, 1)],\n        3: [(0, 0), (0, -2), (0, -1), (-1, -1), (1, -1), (-2, 0), (-1, 0), (1, 0), (2, 0), (0, 1), (-1, 1), (1, 1), (0, 2)]\n    }\n    \n    for x, y, size in drops:\n        for dx, dy in patterns[size]:\n            nx, ny = x + dx, y + dy\n            if 0 <= nx < MAPSIZE and 0 <= ny < MAPSIZE:\n                cells[nx][ny] += 1\n    \n    count = sum(1 for row in cells for cell in row if cell == 0)\n    max_d = max(max(row) for row in cells) if any(any(row) for row in cells) else 0\n    return (count, max_d)"
+  },
+  {
+    "problem_id": "p00027",
+    "problem_statement": "Write a program which reads a date (from 2004/1/1 to 2004/12/31) and returns the day of the week. Jan. 1, 2004, is Thursday. Note that 2004 is a leap year.",
+    "function_signature": "def day_of_week(month: int, day: int) -> str",
+    "baseline_tests": [
+      [1, 1, "Thursday"],
+      [2, 29, "Sunday"],
+      [1, 2, "Friday"],
+      [12, 31, "Friday"],
+      [3, 1, "Monday"],
+      [6, 15, "Tuesday"],
+      [7, 4, "Sunday"]
+    ],
+    "buggy": "def day_of_week(month: int, day: int) -> str:\n    days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']\n    dom = [31, 29, 31, 30, 31, 60, 31, 31, 30, 31, 30, 31]\n    \n    day_num = 4 - 1\n    for i in range(month - 1):\n        day_num += dom[i]\n    day_num += day\n    return days[day_num % 7]",
+    "fixed": "def day_of_week(month: int, day: int) -> str:\n    days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']\n    dom = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]\n    \n    day_num = 4 - 1\n    for i in range(month - 1):\n        day_num += dom[i]\n    day_num += day\n    return days[day_num % 7]",
+    "reference_solution": "def day_of_week(month: int, day: int) -> str:\n    days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']\n    days_in_month = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]\n    \n    # Jan 1, 2004 is Thursday (index 4)\n    total_days = sum(days_in_month[:month-1]) + day - 1 + 3  # +3 because Thursday is index 4\n    return days[total_days % 7]"
+  },
+  {
+    "problem_id": "p00028",
+    "problem_statement": "Write a program which reads a sequence of integers and returns mode values (most frequent values) in ascending order.",
+    "function_signature": "def mode_values(numbers: list[int]) -> list[int]",
+    "baseline_tests": [
+      [[5, 6, 3, 5, 8, 7, 5, 3, 9, 7, 3, 4], [3, 5]],
+      [[1, 1, 1, 2, 2, 3], [1]],
+      [[1, 2, 3, 4, 5], [1, 2, 3, 4, 5]],
+      [[5, 5, 3, 3], [3, 5]],
+      [[10, 10, 10], [10]]
+    ],
+    "buggy": "def mode_values(numbers: list[int]) -> list[int]:\n    hist = [0 for i in range(100)]\n    \n    for num in numbers:\n        hist[num - 1] += 1\n    \n    result = []\n    for k in [x for x in enumlate(hist) if max(hist) == x[1]]:\n        result.append(k[0] + 1)\n    return result",
+    "fixed": "def mode_values(numbers: list[int]) -> list[int]:\n    hist = [0 for i in range(100)]\n    \n    for num in numbers:\n        hist[num - 1] += 1\n    \n    result = []\n    for k in [x for x in enumerate(hist) if max(hist) == x[1]]:\n        result.append(k[0] + 1)\n    return result",
+    "reference_solution": "def mode_values(numbers: list[int]) -> list[int]:\n    from collections import Counter\n    counter = Counter(numbers)\n    max_count = max(counter.values())\n    return sorted([num for num, count in counter.items() if count == max_count])"
+  },
+  {
+    "problem_id": "p00030",
+    "problem_statement": "Output the number of combinations of n different numbers from 0 to 9 whose sum is s. Each number can only be used once in a combination.",
+    "function_signature": "def sum_of_integers(n: int, s: int) -> int",
+    "baseline_tests": [
+      [3, 6, 3],
+      [3, 1, 0],
+      [2, 9, 1],
+      [4, 10, 10],
+      [1, 5, 1],
+      [5, 15, 21]
+    ],
+    "buggy": "from itertools import combinations\n\ndef sum_of_integers(n: int, s: int) -> int:\n    count = 0\n    if n and s:\n        for i in combinations(range(10), n):\n            if sum(i) == s:\n                count += 1\n    return count",
+    "fixed": "from itertools import combinations\n\ndef sum_of_integers(n: int, s: int) -> int:\n    count = 0\n    if n or s:\n        for i in combinations(range(10), n):\n            if sum(i) == s:\n                count += 1\n    return count",
+    "reference_solution": "from itertools import combinations\n\ndef sum_of_integers(n: int, s: int) -> int:\n    if n == 0 and s == 0:\n        return 1\n    if n == 0:\n        return 0\n    count = 0\n    for combo in combinations(range(10), n):\n        if sum(combo) == s:\n            count += 1\n    return count"
+  },
+  {
+    "problem_id": "p00033",
+    "problem_statement": "Ten balls numbered 1-10 are dropped in order into two tubes B and C. Both tubes must have smaller numbered balls on top. Return 'YES' if this arrangement is possible, 'NO' otherwise.",
+    "function_signature": "def ball_sorting(balls: list[int]) -> str",
+    "baseline_tests": [
+      [[3, 1, 4, 2, 5, 6, 7, 8, 9, 10], "YES"],
+      [[10, 9, 8, 7, 6, 5, 4, 3, 2, 1], "NO"],
+      [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], "YES"],
+      [[2, 1, 3, 4, 5, 6, 7, 8, 9, 10], "YES"],
+      [[5, 4, 3, 2, 1, 6, 7, 8, 9, 10], "YES"]
+    ],
+    "buggy": "def ball_sorting(balls: list[int]) -> str:\n    a = balls\n    b, c = 0, 0\n    yes = True\n    for j in range(10):\n        if a[j] > b:\n            b = a[j]\n        elif a[j] > c:\n            c = a[j]\n        else:\n            yes = False\n    return \"YES\" if yes else \"NO\"",
+    "fixed": "def ball_sorting(balls: list[int]) -> str:\n    a = balls\n    b, c = 0, 0\n    yes = True\n    for j in range(10):\n        if a[j] > b:\n            b = a[j]\n        elif a[j] > c:\n            c = a[j]\n        else:\n            yes = False\n    return \"YES\" if yes else \"NO\"",
+    "reference_solution": "def ball_sorting(balls: list[int]) -> str:\n    tube_b = 0  # top of tube B (0 means empty)\n    tube_c = 0  # top of tube C (0 means empty)\n    \n    for ball in balls:\n        # Try to place in tube B (must be larger than current top)\n        if ball > tube_b:\n            tube_b = ball\n        # Otherwise try tube C\n        elif ball > tube_c:\n            tube_c = ball\n        # Can't place in either tube\n        else:\n            return \"NO\"\n    return \"YES\""
+  },
+  {
+    "problem_id": "p00034",
+    "problem_statement": "Two trains depart simultaneously from opposite ends of a 10-section railway line and run without stopping. Given the length of each section and the speeds of the two trains, determine which section number they pass each other in.",
+    "function_signature": "def railway_lines(sections: list[int], v1: int, v2: int) -> int",
+    "baseline_tests": [
+      [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 40, 60, 4],
+      [[1, 1, 1, 1, 1, 3, 3, 3, 3, 3], 50, 50, 7],
+      [[10, 10, 10, 10, 10, 10, 10, 10, 10, 10], 50, 49, 6],
+      [[2, 2, 2, 2, 2, 2, 2, 2, 2, 2], 100, 100, 5]
+    ],
+    "buggy": "def railway_lines(sections: list[int], v1: int, v2: int) -> int:\n    kyo = sum(sections)\n    v = v1 + v2\n    x = kyo / v\n    ans = v1 * x\n    flag = 0\n    for j in sections + [0]:\n        if ans > 0:\n            ans -= j\n            flag += 1\n            print(ans)\n        else:\n            return flag",
+    "fixed": "def railway_lines(sections: list[int], v1: int, v2: int) -> int:\n    kyo = sum(sections)\n    v = v1 + v2\n    x = kyo / v\n    ans = v1 * x\n    flag = 0\n    for j in sections + [0]:\n        if ans > 0:\n            ans -= j\n            flag += 1\n        else:\n            return flag",
+    "reference_solution": "def railway_lines(sections: list[int], v1: int, v2: int) -> int:\n    total_distance = sum(sections)\n    time_to_meet = total_distance / (v1 + v2)\n    distance_from_start = v1 * time_to_meet\n    \n    cumulative = 0\n    for i, length in enumerate(sections, 1):\n        cumulative += length\n        if distance_from_start <= cumulative:\n            return i\n    return len(sections)"
+  },
+  {
+    "problem_id": "p00035",
+    "problem_statement": "Given four distinct points A, B, C, D on a plane, determine if the quadrilateral ABCD formed by these points is convex. Return True if convex, False otherwise.",
+    "function_signature": "def is_convex_quadrilateral(xa: float, ya: float, xb: float, yb: float, xc: float, yc: float, xd: float, yd: float) -> bool",
+    "baseline_tests": [
+      [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, True],
+      [0.0, 0.0, 3.0, 0.0, 1.0, 1.0, 1.0, 3.0, False],
+      [0.0, 0.0, 2.0, 0.0, 2.0, 2.0, 0.0, 2.0, True],
+      [0.0, 0.0, 1.0, 1.0, 0.0, 2.0, 1.0, 0.0, False]
+    ],
+    "buggy": "def is_convex_quadrilateral(xa: float, ya: float, xb: float, yb: float, xc: float, yc: float, xd: float, yd: float) -> bool:\n    def sol(a1, b1, a2, b2, a3, b3):\n        return (a3-a2)*b1-(b3-b2)*a1+a2*b3-a3*b2\n    \n    x1, y1, x2, y2, x3, y3, x4, y4 = xa, ya, xb, yb, xc, yc, xd, yd\n    if sol(x1,y1,x2,y2,x4,y4)*sol(x3,y3,x2,y2,x4,y4)<0 and sol(x4,y4,x1,y1,x3,y3)*sol(x2,y2,x1,y1,x3,y3)<0:\n        return True\n    else:\n        return False",
+    "fixed": "def is_convex_quadrilateral(xa: float, ya: float, xb: float, yb: float, xc: float, yc: float, xd: float, yd: float) -> bool:\n    def sol(a1, b1, a2, b2, a3, b3):\n        return (a3-a2)*b1-(b3-b2)*a1+a2*b3-a3*b2\n    \n    x1, y1, x2, y2, x3, y3, x4, y4 = xa, ya, xb, yb, xc, yc, xd, yd\n    if sol(x1,y1,x2,y2,x4,y4)*sol(x3,y3,x2,y2,x4,y4)<0 and sol(x4,y4,x1,y1,x3,y3)*sol(x2,y2,x1,y1,x3,y3)<0:\n        return True\n    else:\n        return False",
+    "reference_solution": "def is_convex_quadrilateral(xa: float, ya: float, xb: float, yb: float, xc: float, yc: float, xd: float, yd: float) -> bool:\n    def cross_product(p1, p2, p3):\n        return (p2[0] - p1[0]) * (p3[1] - p1[1]) - (p2[1] - p1[1]) * (p3[0] - p1[0])\n    \n    points = [(xa, ya), (xb, yb), (xc, yc), (xd, yd)]\n    signs = []\n    for i in range(4):\n        cp = cross_product(points[i], points[(i+1)%4], points[(i+2)%4])\n        signs.append(cp > 0)\n    \n    return all(signs) or not any(signs)"
+  },
+  {
+    "problem_id": "p00036",
+    "problem_statement": "Given an 8x8 grid where 1 represents occupied squares and 0 represents empty squares, identify which shape (A-G) is present. Shapes are specific tetromino-like patterns.",
+    "function_signature": "def identify_shape(grid: list[str]) -> str",
+    "baseline_tests": [
+      [["00000000", "00000000", "01100000", "00110000", "00000000", "00000000", "00000000", "00000000"], "E"],
+      [["00011110", "00000000", "00000000", "00000000", "00000000", "00000000", "00000000", "00000000"], "C"],
+      [["00000000", "00000000", "00110000", "00110000", "00000000", "00000000", "00000000", "00000000"], "A"],
+      [["00000000", "00100000", "00100000", "00100000", "00100000", "00000000", "00000000", "00000000"], "B"]
+    ],
+    "buggy": "def identify_shape(grid: list[str]) -> str:\n    fe1 = grid\n    \n    def check_a():\n        for i in range(8):\n            for j in range(8):\n                if fe1[i][j] == \"1\":\n                    try:\n                        if fe1[i][j+1]==fe1[i+1][j]==fe1[i+1][j+1]==\"1\":\n                            return True\n                    except: pass\n        return False\n    \n    def check_b():\n        for i in range(8):\n            for j in range(8):\n                if fe1[i][j] == \"1\":\n                    try:\n                        if fe1[i+1][j]==fe1[i+2][j]==fe1[i+3][j]==\"1\":\n                            return True\n                    except: pass\n        return False\n    \n    def check_c():\n        for i in range(8):\n            for j in range(8):\n                if fe1[i][j] == \"1\":\n                    try:\n                        if fe1[i][j+1]==fe1[i][j+2]==fe1[i][j+3]==\"1\":\n                            return True\n                    except: pass\n        return False\n    \n    def check_d():\n        for i in range(8):\n            for j in range(8):\n                if fe1[i][j] == \"1\":\n                    try:\n                        if fe1[i+1][j-1]==fe1[i+1][j]==fe1[i+2][j-1]==\"1\":\n                            return True\n                    except: pass\n        return False\n    \n    def check_e():\n        for i in range(8):\n            for j in range(8):\n                if fe1[i][j] == \"1\":\n                    try:\n                        if fe1[i][j+1]==fe1[i+1][j+1]==fe1[i+1][j+2]==\"1\":\n                            return True\n                    except: pass\n        return False\n    \n    def check_f():\n        for i in range(8):\n            for j in range(8):\n                if fe1[i][j] == \"1\":\n                    try:\n                        if fe1[i+1][j]==fe1[i+1][j+1]==fe1[i+2][j+1]==\"1\":\n                            return True\n                    except: pass\n        return False\n    \n    def check_g():\n        for i in range(8):\n            for j in range(8):\n                if fe1[i][j] == \"1\":\n                    try:\n                        if fe1[i][j+1]==fe1[i+1][j-1]==fe1[i+1][j]==\"1\":\n                            return True\n                    except: pass\n        return False\n    \n    if check_a(): return \"A\"\n    if check_b(): return \"B\"\n    if check_c(): return \"C\"\n    if check_d(): return \"D\"\n    if check_e(): return \"E\"\n    if check_f(): return \"F\"\n    if check_g(): return \"G\"\n    return \"null\"",
+    "fixed": "def identify_shape(grid: list[str]) -> str:\n    fe1 = grid\n    \n    def check_a():\n        for i in range(8):\n            for j in range(8):\n                if fe1[i][j] == \"1\":\n                    try:\n                        if fe1[i][j+1]==fe1[i+1][j]==fe1[i+1][j+1]==\"1\":\n                            return True\n                    except: pass\n        return False\n    \n    def check_b():\n        for i in range(8):\n            for j in range(8):\n                if fe1[i][j] == \"1\":\n                    try:\n                        if fe1[i+1][j]==fe1[i+2][j]==fe1[i+3][j]==\"1\":\n                            return True\n                    except: pass\n        return False\n    \n    def check_c():\n        for i in range(8):\n            for j in range(8):\n                if fe1[i][j] == \"1\":\n                    try:\n                        if fe1[i][j+1]==fe1[i][j+2]==fe1[i][j+3]==\"1\":\n                            return True\n                    except: pass\n        return False\n    \n    def check_d():\n        for i in range(8):\n            for j in range(8):\n                if fe1[i][j] == \"1\":\n                    try:\n                        if fe1[i+1][j-1]==fe1[i+1][j]==fe1[i+2][j-1]==\"1\":\n                            return True\n                    except: pass\n        return False\n    \n    def check_e():\n        for i in range(8):\n            for j in range(8):\n                if fe1[i][j] == \"1\":\n                    try:\n                        if fe1[i][j+1]==fe1[i+1][j+1]==fe1[i+1][j+2]==\"1\":\n                            return True\n                    except: pass\n        return False\n    \n    def check_f():\n        for i in range(8):\n            for j in range(8):\n                if fe1[i][j] == \"1\":\n                    try:\n                        if fe1[i+1][j]==fe1[i+1][j+1]==fe1[i+2][j+1]==\"1\":\n                            return True\n                    except: pass\n        return True\n    \n    def check_g():\n        for i in range(8):\n            for j in range(8):\n                if fe1[i][j] == \"1\":\n                    try:\n                        if fe1[i][j+1]==fe1[i+1][j-1]==fe1[i+1][j]==\"1\":\n                            return True\n                    except: pass\n        return False\n    \n    if check_a(): return \"A\"\n    if check_b(): return \"B\"\n    if check_c(): return \"C\"\n    if check_d(): return \"D\"\n    if check_e(): return \"E\"\n    if check_f(): return \"F\"\n    if check_g(): return \"G\"\n    return \"null\"",
+    "reference_solution": "def identify_shape(grid: list[str]) -> str:\n    patterns = {\n        'A': [[(0,0), (0,1), (1,0), (1,1)]],\n        'B': [[(0,0), (1,0), (2,0), (3,0)]],\n        'C': [[(0,0), (0,1), (0,2), (0,3)]],\n        'D': [[(0,0), (1,-1), (1,0), (2,-1)]],\n        'E': [[(0,0), (0,1), (1,1), (1,2)]],\n        'F': [[(0,0), (1,0), (1,1), (2,1)]],\n        'G': [[(0,0), (0,1), (1,-1), (1,0)]]\n    }\n    \n    for shape, pattern_list in patterns.items():\n        for pattern in pattern_list:\n            for i in range(8):\n                for j in range(8):\n                    if all(0 <= i+di < 8 and 0 <= j+dj < 8 and grid[i+di][j+dj] == '1' for di, dj in pattern):\n                        return shape\n    return \"null\""
+  },
+  {
+    "problem_id": "p00038",
+    "problem_statement": "Read poker hand data (5 cards) and return the ranking: 'null', 'one pair', 'two pair', 'three card', 'straight', 'full house', or 'four card'.",
+    "function_signature": "def poker_hand(cards: list[int]) -> str",
+    "baseline_tests": [
+      [[1, 2, 3, 4, 1], "one pair"],
+      [[2, 3, 2, 3, 12], "two pair"],
+      [[12, 13, 11, 12, 12], "three card"],
+      [[7, 6, 7, 6, 7], "full house"],
+      [[3, 3, 2, 3, 3], "four card"],
+      [[6, 7, 8, 9, 10], "straight"],
+      [[11, 12, 10, 1, 13], "straight"],
+      [[11, 12, 13, 1, 2], "null"]
+    ],
+    "buggy": "def poker_hand(cards: list[int]) -> str:\n    word = sorted(cards)\n    flag = [0, 0]\n    if sum(word[1:5]) == 46:\n        word.append(int(word[0]))\n        del word[0]\n    \n    if word == [10, 11, 12, 13, 1]:\n        return \"straight\"\n    else:\n        for j in range(1, 14):\n            if word.count(j) == 2:\n                flag[0] += 1\n            elif word.count(j) == 3:\n                flag[1] += 1\n            elif word.count(j) == 4:\n                return \"four card\"\n            elif word[0] + 2 == word[1] + 1 == word[2] == word[3] - 1 == word[4] - 2:\n                return \"straight\"\n        \n        if flag[0] == flag[1] == 1:\n            return \"full house\"\n        elif flag[0] == 1:\n            return \"one pair\"\n        elif flag[0] == 2:\n            return \"two pair\"\n        elif flag[1] == 1:\n            return \"three pair\"\n        elif flag[0] < 1 or flag[1] < 1:\n            return \"null\"",
+    "fixed": "def poker_hand(cards: list[int]) -> str:\n    word = sorted(cards)\n    flag = [0, 0]\n    if sum(word[1:5]) == 46:\n        word.append(int(word[0]))\n        del word[0]\n    \n    if word == [10, 11, 12, 13, 1]:\n        return \"straight\"\n    else:\n        for j in range(1, 14):\n            if word.count(j) == 2:\n                flag[0] += 1\n            elif word.count(j) == 3:\n                flag[1] += 1\n            elif word.count(j) == 4:\n                return \"four card\"\n            elif word[0] + 2 == word[1] + 1 == word[2] == word[3] - 1 == word[4] - 2:\n                return \"straight\"\n        \n        if flag[0] == flag[1] == 1:\n            return \"full house\"\n        elif flag[0] == 1:\n            return \"one pair\"\n        elif flag[0] == 2:\n            return \"two pair\"\n        elif flag[1] == 1:\n            return \"three card\"\n        elif flag[0] < 1 or flag[1] < 1:\n            return \"null\"",
+    "reference_solution": "def poker_hand(cards: list[int]) -> str:\n    from collections import Counter\n    sorted_cards = sorted(cards)\n    counter = Counter(sorted_cards)\n    counts = sorted(counter.values(), reverse=True)\n    \n    # Check for straight\n    if len(counter) == 5:\n        if sorted_cards == [1, 2, 3, 4, 5] or sorted_cards == [10, 11, 12, 13, 1] or \\\n           (sorted_cards[4] - sorted_cards[0] == 4):\n            return \"straight\"\n    \n    # Check other hands\n    if counts == [4, 1]: return \"four card\"\n    if counts == [3, 2]: return \"full house\"\n    if counts == [3, 1, 1]: return \"three card\"\n    if counts == [2, 2, 1]: return \"two pair\"\n    if counts == [2, 1, 1, 1]: return \"one pair\"\n    return \"null\""
+  },
+  {
+    "problem_id": "p00039",
+    "problem_statement": "Convert Roman numerals to Arabic numerals. Roman numeral rules: I=1, V=5, X=10, L=50, C=100, D=500, M=1000. Smaller before larger means subtract.",
+    "function_signature": "def roman_to_arabic(roman: str) -> int",
+    "baseline_tests": [
+      ["IV", 4],
+      ["CCCCLXXXXVIIII", 499],
+      ["CDXCIX", 499],
+      ["IX", 9],
+      ["MCMXC", 1990],
+      ["MMXX", 2020]
+    ],
+    "buggy": "def roman_to_arabic(roman: str) -> int:\n    line = roman.translate(str.maketrans('IVXLCDM', '1234567'))\n    num = list(map(int, list(line)))\n    \n    for i in range(len(num)):\n        if num[i] == 2: num[i] = 5\n        elif num[i] == 3: num[i] = 10\n        elif num[i] == 4: num[i] = 50\n        elif num[i] == 5: num[i] = 100\n        elif num[i] == 6: num[i] = 500\n        elif num[i] == 7: num[i] = 1000\n    \n    result = 0\n    tmp = num[0]\n    for i in range(len(num)):\n        if tmp < num[i]:\n            result += num[i] - tmp\n        elif i <= len(num) and num[i] < num[i+1]:\n            result += 0\n        else:\n            result += num[i]\n        tmp = num[i]\n    \n    return result",
+    "fixed": "def roman_to_arabic(roman: str) -> int:\n    line = roman.translate(str.maketrans('IVXLCDM', '1234567'))\n    num = list(map(int, list(line)))\n    \n    for i in range(len(num)):\n        if num[i] == 2: num[i] = 5\n        elif num[i] == 3: num[i] = 10\n        elif num[i] == 4: num[i] = 50\n        elif num[i] == 5: num[i] = 100\n        elif num[i] == 6: num[i] = 500\n        elif num[i] == 7: num[i] = 1000\n    \n    result = 0\n    tmp = num[0]\n    for i in range(len(num)):\n        if tmp < num[i]:\n            result += num[i] - tmp\n        elif i < len(num) - 1 and num[i] < num[i+1]:\n            result += 0\n        else:\n            result += num[i]\n        tmp = num[i]\n    \n    return result",
+    "reference_solution": "def roman_to_arabic(roman: str) -> int:\n    values = {'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100, 'D': 500, 'M': 1000}\n    result = 0\n    prev = 0\n    for char in reversed(roman):\n        val = values[char]\n        if val < prev:\n            result -= val\n        else:\n            result += val\n        prev = val\n    return result"
+  },
+  {
+    "problem_id": "p00042",
+    "problem_statement": "Knapsack problem: Given a fabric with weight capacity W and N treasures with values and weights, find the maximum total value and the total weight of items that fit.",
+    "function_signature": "def knapsack_thief(capacity: int, items: list[tuple[int, int]]) -> tuple[int, int]",
+    "baseline_tests": [
+      [50, [(60, 10), (100, 20), (120, 30), (210, 45), (10, 4)], (220, 49)],
+      [100, [(60, 10), (100, 20), (120, 30), (210, 45), (10, 4)], (490, 104)],
+      [30, [(60, 10), (100, 20), (120, 30)], (180, 30)],
+      [10, [(50, 5), (60, 10)], (60, 10)]
+    ],
+    "buggy": "def knapsack_thief(capacity: int, items: list[tuple[int, int]]) -> tuple[int, int]:\n    cnt = 0\n    cnt += 1\n    maxweight = capacity\n    length = len(items)\n    tresure = items\n    dp = [[0 for n in range(length+1)] for m in range(maxweight + 1)]\n    answeight = 0\n    ansvalue = 0\n    \n    for outer in range(length + 1):\n        if outer == 0: continue\n        weight = tresure[outer-1][1]\n        value = tresure[outer-1][0]\n        dp[weight][outer] = max(dp[weight][outer], value)\n        for inner in range(maxweight + 1):\n            if dp[inner][outer - 1] != 0:\n                beforevalue = dp[inner][outer - 1]\n                beforeweight = inner\n                dp[inner][outer] = max(beforevalue, dp[inner][outer])\n                if beforeweight + weight <= maxweight:\n                    nowvalue = dp[beforeweight + weight][outer]\n                    dp[beforeweight + weight][outer] = max(nowvalue, beforevalue+value)\n    \n    for a in range(maxweight+1):\n        if ansvalue < dp[a][length]:\n            ansvalue = dp[a][length]\n            answeight = a\n    return (ansvalue, answeight)",
+    "fixed": "def knapsack_thief(capacity: int, items: list[tuple[int, int]]) -> tuple[int, int]:\n    maxweight = capacity\n    length = len(items)\n    tresure = items\n    dp = [[0 for n in range(length+1)] for m in range(maxweight + 1)]\n    answeight = 0\n    ansvalue = 0\n    \n    for outer in range(length + 1):\n        if outer == 0: continue\n        weight = tresure[outer-1][1]\n        value = tresure[outer-1][0]\n        dp[weight][outer] = max(dp[weight][outer], value)\n        for inner in range(maxweight + 1):\n            if dp[inner][outer - 1] != 0:\n                beforevalue = dp[inner][outer - 1]\n                beforeweight = inner\n                dp[inner][outer] = max(beforevalue, dp[inner][outer])\n                if beforeweight + weight <= maxweight:\n                    nowvalue = dp[beforeweight + weight][outer]\n                    dp[beforeweight + weight][outer] = max(nowvalue, beforevalue+value)\n    \n    for a in range(maxweight+1):\n        if ansvalue < dp[a][length]:\n            ansvalue = dp[a][length]\n            answeight = a\n    return (ansvalue, answeight)",
+    "reference_solution": "def knapsack_thief(capacity: int, items: list[tuple[int, int]]) -> tuple[int, int]:\n    n = len(items)\n    dp = [[0] * (capacity + 1) for _ in range(n + 1)]\n    \n    for i in range(1, n + 1):\n        value, weight = items[i-1]\n        for w in range(capacity + 1):\n            if weight <= w:\n                dp[i][w] = max(dp[i-1][w], dp[i-1][w-weight] + value)\n            else:\n                dp[i][w] = dp[i-1][w]\n    \n    max_value = dp[n][capacity]\n    w = capacity\n    for wt in range(capacity, -1, -1):\n        if dp[n][wt] == max_value:\n            w = wt\n            break\n    \n    return (max_value, w)"
   }
 ]
