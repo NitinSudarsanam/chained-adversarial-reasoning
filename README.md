@@ -22,8 +22,6 @@ Instead of asking an LLM to immediately write code, we force it through **5 expl
 4. **Constraints & Invariants** - "What assumptions must hold? What are the edge cases?"
 5. **Executable Code** - "Now I'll implement it properly in Python"
 
-This mirrors how expert programmers actually solve problems - they don't jump straight to code. By forcing the model to articulate its reasoning at each stage, we make the problem-solving process explicit, interpretable, and more robust.
-
 ### The Adversarial Training Loop
 
 Here's where it gets interesting. We train **two models that compete**:
@@ -64,7 +62,7 @@ Create LLMs that produce more robust, well-reasoned code by:
 2. **Adversarial pressure** - Training against a discriminator that tries to break the code
 3. **Execution feedback** - Using PPO reinforcement learning with real test execution results
 
-The result: Models that don't just memorize solutions, but actually learn to reason about problems systematically and defensively.
+The goal: Models that don't just memorize solutions, but actually learn to reason about problems systematically and defensively.
 
 ## Architecture
 
@@ -107,11 +105,6 @@ The result: Models that don't just memorize solutions, but actually learn to rea
 ### Key Components
 
 1. **Generator (5 Reasoning Stages)**:
-   - Stage 1: Informal Reasoning - High-level intuition
-   - Stage 2: Structured Reasoning - Organized breakdown
-   - Stage 3: Pseudocode - Algorithm design
-   - Stage 4: Constraints & Invariants - Correctness conditions
-   - Stage 5: Executable Code - Final Python implementation
 
 2. **Discriminator**: Generates adversarial test cases at each stage to expose bugs
 
@@ -484,29 +477,10 @@ Breaking problem-solving into stages:
 3. **Proven** - Successfully used in AlphaGo, ChatGPT, etc.
 4. **On-policy** - Directly optimizes the policy we care about
 
-## Contributing
-
-Contributions welcome! Areas for improvement:
-
-- [ ] Add more problem datasets (CodeContest, HumanEval, etc.)
-- [ ] Implement curriculum learning (easy → hard problems)
-- [ ] Add type checking for generated code
-- [ ] Implement multi-file code generation
-- [ ] Add support for other languages (Java, C++, etc.)
-- [ ] Improve test salvaging from malformed discriminator output
-- [ ] Add baseline comparisons (without reasoning stages)
-- [ ] Implement value function for advantage estimation
-
-## License
-
-MIT License - see LICENSE file for details
-
 ## Acknowledgments
 
 - **PEFT** library for LoRA implementation
 - **HuggingFace** for model hosting and transformers library
-- **Qwen** for the excellent Coder models
-- **OpenAI** for PPO algorithm research
 
 ## Contact
 
