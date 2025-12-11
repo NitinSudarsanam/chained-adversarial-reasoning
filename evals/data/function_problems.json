@@ -1,0 +1,90 @@
+{
+  "problems": [
+    {
+      "id": "string_compression_with_frequency",
+      "description": "Implement a string compression algorithm that:\n1. Groups consecutive identical characters\n2. Replaces groups of 3+ chars with: char + count\n3. Keeps groups of 1-2 chars as-is\n4. Returns the shorter of original or compressed string\nExample: \"aaabbc\" -> \"a3bbc\" (7 chars -> 5 chars)\nExample: \"abc\" -> \"abc\" (no compression needed)",
+      "function_signature": "def compress_string(s: str) -> str:",
+      "baseline_tests": [
+        "assert compress_string('aaabbc') == 'a3bbc'",
+        "assert compress_string('abc') == 'abc'",
+        "assert compress_string('aabbcc') == 'aabbcc'",
+        "assert compress_string('aaaa') == 'a4'"
+      ],
+      "reference_solution": "def compress_string(s: str) -> str:\n    if not s:\n        return s\n    \n    compressed = []\n    count = 1\n    current = s[0]\n    \n    for i in range(1, len(s)):\n        if s[i] == current:\n            count += 1\n        else:\n            if count >= 3:\n                compressed.append(current + str(count))\n            else:\n                compressed.append(current * count)\n            current = s[i]\n            count = 1\n    \n    # Handle last group\n    if count >= 3:\n        compressed.append(current + str(count))\n    else:\n        compressed.append(current * count)\n    \n    compressed_str = ''.join(compressed)\n    return compressed_str if len(compressed_str) < len(s) else s",
+      "difficulty": "easy",
+      "tags": [
+        "string",
+        "compression",
+        "greedy"
+      ]
+    },
+    {
+      "id": "matrix_spiral_sum",
+      "description": "Given an m x n matrix of integers, return the sum of all elements traversed in spiral order (clockwise from outside to inside). Example: [[1,2,3],[4,5,6],[7,8,9]] -> 1+2+3+6+9+8+7+4+5 = 45",
+      "function_signature": "def spiral_sum(matrix: list[list[int]]) -> int:",
+      "baseline_tests": [
+        "assert spiral_sum([[1,2,3],[4,5,6],[7,8,9]]) == 45",
+        "assert spiral_sum([[1,2],[3,4]]) == 10",
+        "assert spiral_sum([[1]]) == 1",
+        "assert spiral_sum([[1,2,3,4]]) == 10"
+      ],
+      "reference_solution": "def spiral_sum(matrix: list[list[int]]) -> int:\n    if not matrix or not matrix[0]:\n        return 0\n    \n    total = 0\n    top, bottom = 0, len(matrix) - 1\n    left, right = 0, len(matrix[0]) - 1\n    \n    while top <= bottom and left <= right:\n        for col in range(left, right + 1):\n            total += matrix[top][col]\n        top += 1\n        for row in range(top, bottom + 1):\n            total += matrix[row][right]\n        right -= 1\n        if top <= bottom:\n            for col in range(right, left - 1, -1):\n                total += matrix[bottom][col]\n            bottom -= 1\n        if left <= right:\n            for row in range(bottom, top - 1, -1):\n                total += matrix[row][left]\n            left += 1\n    return total",
+      "difficulty": "medium",
+      "tags": [
+        "matrix",
+        "spiral",
+        "traversal"
+      ]
+    },
+    {
+      "id": "find_median_sorted_arrays",
+      "description": "Given two sorted arrays nums1 and nums2, find the median of the two sorted arrays combined.",
+      "function_signature": "def find_median_sorted_arrays(nums1: list[int], nums2: list[int]) -> float:",
+      "baseline_tests": [
+        "assert find_median_sorted_arrays([1, 3], [2]) == 2.0",
+        "assert find_median_sorted_arrays([1, 2], [3, 4]) == 2.5",
+        "assert find_median_sorted_arrays([0, 0], [0, 0]) == 0.0"
+      ],
+      "reference_solution": "def find_median_sorted_arrays(nums1: list[int], nums2: list[int]) -> float:\n    merged = sorted(nums1 + nums2)\n    n = len(merged)\n    if n % 2 == 1:\n        return float(merged[n // 2])\n    else:\n        return (merged[n // 2 - 1] + merged[n // 2]) / 2.0",
+      "difficulty": "medium",
+      "tags": [
+        "arrays",
+        "sorting",
+        "median"
+      ]
+    },
+    {
+      "id": "bitwise_xor_range",
+      "description": "Given an array of integers and a range [left, right], return the XOR of all elements in that range (inclusive).",
+      "function_signature": "def bitwise_xor_range(arr: list[int], left: int, right: int) -> int:",
+      "baseline_tests": [
+        "assert bitwise_xor_range([1, 2, 3, 4], 0, 3) == (1^2^3^4)",
+        "assert bitwise_xor_range([5, 6, 7], 0, 2) == (5^6^7)",
+        "assert bitwise_xor_range([1, 2, 3], 1, 2) == (2^3)"
+      ],
+      "reference_solution": "def bitwise_xor_range(arr: list[int], left: int, right: int) -> int:\n    result = 0\n    for i in range(left, right + 1):\n        result ^= arr[i]\n    return result",
+      "difficulty": "easy",
+      "tags": [
+        "bitwise",
+        "arrays"
+      ]
+    },
+    {
+      "id": "merge_sorted_arrays",
+      "description": "Given two sorted arrays, merge them into a single sorted array.",
+      "function_signature": "def merge_sorted_arrays(arr1: list[int], arr2: list[int]) -> list[int]:",
+      "baseline_tests": [
+        "assert merge_sorted_arrays([1, 3, 5], [2, 4, 6]) == [1, 2, 3, 4, 5, 6]",
+        "assert merge_sorted_arrays([1, 2, 3], [4, 5, 6]) == [1, 2, 3, 4, 5, 6]",
+        "assert merge_sorted_arrays([], [1, 2]) == [1, 2]"
+      ],
+      "reference_solution": "def merge_sorted_arrays(arr1: list[int], arr2: list[int]) -> list[int]:\n    result = []\n    i, j = 0, 0\n    while i < len(arr1) and j < len(arr2):\n        if arr1[i] <= arr2[j]:\n            result.append(arr1[i])\n            i += 1\n        else:\n            result.append(arr2[j])\n            j += 1\n    result.extend(arr1[i:])\n    result.extend(arr2[j:])\n    return result",
+      "difficulty": "easy",
+      "tags": [
+        "arrays",
+        "sorting",
+        "merge"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "problems": [
+    {
+      "id": "two_sum",
+      "description": "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. You may assume that each input would have exactly one solution, and you may not use the same element twice.",
+      "function_signature": "def two_sum(nums: List[int], target: int) -> List[int]:",
+      "baseline_tests": [
+        "assert two_sum([2,7,11,15], 9) == [0,1]",
+        "assert two_sum([3,2,4], 6) == [1,2]",
+        "assert two_sum([3,3], 6) == [0,1]"
+      ],
+      "reference_solution": "def two_sum(nums, target):\n    seen = {}\n    for i, num in enumerate(nums):\n        complement = target - num\n        if complement in seen:\n            return [seen[complement], i]\n        seen[num] = i\n    return []",
+      "difficulty": "easy",
+      "tags": ["array", "hash-table"]
+    },
+    {
+      "id": "reverse_string",
+      "description": "Write a function that reverses a string. The input string is given as an array of characters s. You must do this by modifying the input array in-place with O(1) extra memory.",
+      "function_signature": "def reverse_string(s: List[str]) -> None:",
+      "baseline_tests": [
+        "s = ['h','e','l','l','o']; reverse_string(s); assert s == ['o','l','l','e','h']",
+        "s = ['H','a','n','n','a','h']; reverse_string(s); assert s == ['h','a','n','n','a','H']"
+      ],
+      "reference_solution": "def reverse_string(s):\n    left, right = 0, len(s) - 1\n    while left < right:\n        s[left], s[right] = s[right], s[left]\n        left += 1\n        right -= 1",
+      "difficulty": "easy",
+      "tags": ["two-pointers", "string"]
+    },
+    {
+      "id": "fibonacci",
+      "description": "Write a function to compute the nth Fibonacci number. The Fibonacci sequence is defined as: F(0) = 0, F(1) = 1, F(n) = F(n-1) + F(n-2) for n > 1.",
+      "function_signature": "def fibonacci(n: int) -> int:",
+      "baseline_tests": [
+        "assert fibonacci(0) == 0",
+        "assert fibonacci(1) == 1",
+        "assert fibonacci(2) == 1",
+        "assert fibonacci(5) == 5",
+        "assert fibonacci(10) == 55"
+      ],
+      "reference_solution": "def fibonacci(n):\n    if n <= 1:\n        return n\n    a, b = 0, 1\n    for _ in range(2, n + 1):\n        a, b = b, a + b\n    return b",
+      "difficulty": "easy",
+      "tags": ["math", "dynamic-programming"]
+    },
+    {
+      "id": "is_palindrome",
+      "description": "Given a string s, return true if it is a palindrome, or false otherwise. A string is a palindrome when it reads the same backward as forward.",
+      "function_signature": "def is_palindrome(s: str) -> bool:",
+      "baseline_tests": [
+        "assert is_palindrome('racecar') == True",
+        "assert is_palindrome('hello') == False",
+        "assert is_palindrome('a') == True",
+        "assert is_palindrome('') == True"
+      ],
+      "reference_solution": "def is_palindrome(s):\n    return s == s[::-1]",
+      "difficulty": "easy",
+      "tags": ["string", "two-pointers"]
+    },
+    {
+      "id": "max_subarray",
+      "description": "Given an integer array nums, find the contiguous subarray (containing at least one number) which has the largest sum and return its sum.",
+      "function_signature": "def max_subarray(nums: List[int]) -> int:",
+      "baseline_tests": [
+        "assert max_subarray([-2,1,-3,4,-1,2,1,-5,4]) == 6",
+        "assert max_subarray([1]) == 1",
+        "assert max_subarray([5,4,-1,7,8]) == 23"
+      ],
+      "reference_solution": "def max_subarray(nums):\n    max_sum = current_sum = nums[0]\n    for num in nums[1:]:\n        current_sum = max(num, current_sum + num)\n        max_sum = max(max_sum, current_sum)\n    return max_sum",
+      "difficulty": "medium",
+      "tags": ["array", "dynamic-programming", "divide-and-conquer"]
+    }
+  ]
+}
