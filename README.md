@@ -1,20 +1,20 @@
 # Chained Adversarial Reasoning
 
-**A self-play reinforcement learning system in which two LLMs compete — one writing code, one writing tests — to produce more robust code generation.**
+A self-play RL system where two LLMs compete, one writing code and one writing tests, to make code generation more robust.
 
-Final project for CSCI 2470 (Deep Learning) at Brown University. Built end-to-end from scratch: reasoning pipeline, PPO loop, isolated execution sandbox, reward design, training harness, and evaluation suite.
+Final project for CSCI 2470 (Deep Learning) at Brown. Written end-to-end: reasoning pipeline, PPO loop, isolated sandbox, reward design, training harness, eval suite.
 
 ## Overview
 
-Modern code-generation LLMs jump straight to implementation and produce solutions that look plausible but break on corner cases. We asked a sharper question: **can two small LLMs teach each other to be better at code, with nothing but a Python interpreter in the loop?**
+Code-generation LLMs tend to jump straight to implementation and produce solutions that look right but break on corner cases. We wanted to try something simpler: can two small LLMs teach each other to write better code with nothing but a Python interpreter in the loop?
 
-The answer, demonstrated in this repo, is yes. The system has three components:
+Turns out yes. The system has three pieces:
 
-1. **Generator** — an LLM that produces a Python solution to a coding problem.
-2. **Discriminator** — a separate LLM that reads the generator's output and produces adversarial test cases designed to break it.
-3. **Sandbox** — a hardened subprocess executor that runs generated code and tests against a ground-truth reference, returning rewards to both models.
+1. Generator: an LLM that writes a Python solution to a coding problem.
+2. Discriminator: a separate LLM that reads the generator's output and writes adversarial test cases meant to break it.
+3. Sandbox: a hardened subprocess executor that runs generated code and tests against a ground-truth reference and returns rewards to both models.
 
-Both models are fine-tuned with **PPO (Proximal Policy Optimization)** using LoRA adapters on top of a frozen 4-bit quantized base model. **Rewards come entirely from execution outcomes against a reference implementation** — no human feedback, no labeled reasoning traces, no reward model. The whole learning signal is a pass/fail vector from a Python subprocess.
+Both models are fine-tuned with PPO (Proximal Policy Optimization) using LoRA adapters on top of a frozen 4-bit quantized base model. Rewards come entirely from execution outcomes against a reference implementation. No human feedback, no labeled reasoning traces, no reward model. The whole learning signal is a pass/fail vector from a Python subprocess.
 
 ## Repository Layout
 
@@ -56,31 +56,31 @@ chained-adversarial-reasoning/
 
 ### 5-Stage Reasoning (initial design)
 
-The generator produces a solution through five explicit prompts, each conditioned on the previous outputs:
+The generator produces a solution through five prompts, each conditioned on the previous outputs:
 
-1. **Informal Reasoning** — intuitive read of the problem
-2. **Structured Reasoning** — numbered breakdown, observations, edge cases
-3. **Pseudocode** — language-agnostic algorithm
-4. **Constraints & Invariants** — pre/post-conditions, complexity, loop invariants
-5. **Executable Code** — final Python implementation
+1. Informal reasoning: intuitive read of the problem
+2. Structured reasoning: numbered breakdown, observations, edge cases
+3. Pseudocode: language-agnostic algorithm
+4. Constraints and invariants: pre/post-conditions, complexity, loop invariants
+5. Executable code: final Python implementation
 
-The discriminator is invoked at every stage, generating tests targeted at whatever the generator has committed to so far (happy-path tests early, constraint-violating stress tests late).
+The discriminator runs at every stage and generates tests aimed at whatever the generator has committed to so far. Happy-path tests early, constraint-violating stress tests late.
 
-This design is in `5-stage-reasoning/` and is fully implemented, but the compute required to train both models through five stages per problem exceeded what we had available.
+This design lives in `5-stage-reasoning/` and is fully implemented, but training both models through five stages per problem was more compute than we had.
 
 ### 1-Stage Reasoning (final system)
 
-We distilled the design to a single forward pass: the generator produces code directly, and the discriminator writes a batch of adversarial test cases from the problem statement alone. Trimming the pipeline made training tractable within a Colab budget while preserving the core adversarial dynamic — and this is the configuration that drove all reported training runs and evaluation results. All supporting code lives in `1-stage-reasoning/`.
+We cut the pipeline to a single forward pass. The generator produces code directly, and the discriminator writes a batch of adversarial test cases from the problem statement alone. Trimming the pipeline made training fit inside a Colab budget while keeping the adversarial dynamic. This is the configuration behind all reported training runs and evaluation results. Supporting code is in `1-stage-reasoning/`.
 
 ## Reward Shaping
 
-Rewards are computed from execution outcomes against a reference solution. For each generated test `(inputs, expected)`:
+Rewards come from execution outcomes against a reference solution. For each generated test `(inputs, expected)`:
 
-- If the reference solution produces `expected` on `inputs`, the test is **valid**. The discriminator is credited; the test is then run against the generator's code.
-- If the test is valid *and* the generator's code fails it, the discriminator receives an additional **bug-catch** reward and the generator is penalized.
+- If the reference solution produces `expected` on `inputs`, the test is valid. The discriminator gets credit and the test is then run against the generator's code.
+- If the test is valid and the generator's code fails it, the discriminator gets an additional bug-catch reward and the generator is penalized.
 - If the test is invalid (disagrees with the reference, malformed, or unparseable), the discriminator is penalized.
 
-This design keeps the incentives honest in both directions: the discriminator cannot farm rewards by emitting garbage or contradictory tests, and the generator is only penalized by tests that the ground truth actually passes. It also produces a naturally adaptive curriculum — as the generator improves, the only tests that still earn bug-catch reward are the genuinely adversarial ones. The exact reward constants are defined in `1-stage-reasoning/sandbox.py`.
+This keeps incentives honest both ways. The discriminator cannot farm rewards by emitting garbage or contradictory tests, and the generator is only penalized by tests that the ground truth actually passes. You also get a curriculum for free: as the generator improves, the only tests that still earn bug-catch reward are the genuinely adversarial ones. Reward constants are in `1-stage-reasoning/sandbox.py`.
 
 ## Training Details
 
@@ -96,16 +96,16 @@ This design keeps the incentives honest in both directions: the discriminator ca
 | Sandbox | `multiprocessing.Process` with 5 s timeout, killed on overrun |
 | Training set | LeetCode problems, filtered to `easy` difficulty, excluding linked-list and tree tags |
 
-Training the two 8B LoRA models plus the sandbox exceeds a single Colab T4's memory. The training notebook supports splitting the generator, discriminator, and sandbox across three separate Colab sessions, passing outputs and rewards between them by copy-paste — see `1-stage-reasoning/1stage.md`.
+Two 8B LoRA models plus the sandbox don't fit on a single Colab T4. The training notebook supports splitting generator, discriminator, and sandbox across three Colab sessions, passing outputs and rewards between them by copy-paste. See `1-stage-reasoning/1stage.md`.
 
 ## Evaluation
 
-Trained and untrained checkpoints of both models are evaluated on held-out LeetCode problems. The protocol is:
+Trained and untrained checkpoints of both models run on held-out LeetCode problems. Protocol:
 
-- **Generator:** fraction of baseline tests passed per problem.
-- **Discriminator:** (a) fraction of generated tests that agree with the reference solution, and (b) fraction of valid tests that expose bugs in the generator's code.
+- Generator: fraction of baseline tests passed per problem.
+- Discriminator: (a) fraction of generated tests that agree with the reference solution, (b) fraction of valid tests that expose bugs in the generator's code.
 
-Across 100 PPO steps, the trained discriminator produced a **higher bug-catch rate** on held-out problems than its untrained counterpart — concrete evidence that pure execution-driven adversarial training actually taught one of the models something non-trivial about where code-generation models fail. Raw per-problem results are in `evals/results/*.csv`; training loss and reward traces live in `1-stage-reasoning/log1.jsonl` and are analyzed in `1-stage-reasoning/analysis.ipynb`.
+Across 100 PPO steps, the trained discriminator hit a higher bug-catch rate on held-out problems than its untrained counterpart. That is the main signal that adversarial training taught one of the models something non-trivial about where code-generation models break. Per-problem results are in `evals/results/*.csv`. Loss and reward traces are in `1-stage-reasoning/log1.jsonl` and analyzed in `1-stage-reasoning/analysis.ipynb`.
 
 ## Reproducing Results
 
@@ -113,7 +113,7 @@ Across 100 PPO steps, the trained discriminator produced a **higher bug-catch ra
 
 Open `1-stage-reasoning/csci2470_1stageFinal.ipynb` in Colab with ~48 GB of VRAM available (A100). Import `sandbox.py` and `rl_loop.py`, run all cells.
 
-If you only have multiple smaller GPUs / Colab instances, run `generator.ipynb`, `discriminator.ipynb`, and `sandbox.ipynb` in separate sessions and shuttle outputs between them.
+If you only have multiple smaller GPUs or Colab instances, run `generator.ipynb`, `discriminator.ipynb`, and `sandbox.ipynb` in separate sessions and shuttle outputs between them.
 
 **5-Stage (prototype):**
 
@@ -124,14 +124,14 @@ python run_training.py --generator-model Qwen/Qwen2.5-Coder-1.5B-Instruct
 python run_inference.py
 ```
 
-Configuration lives in `5-stage-reasoning/training/config.py`.
+Configuration is in `5-stage-reasoning/training/config.py`.
 
 ## Results and Takeaways
 
-- **Stable PPO under pure execution feedback.** Two 8B LoRA models trained jointly against a sandbox, with no reward model and no human feedback, producing clean, monotonic loss curves across 100 steps — the hard part of RLHF-style training, made to work without the H or the F.
-- **The discriminator actually learned.** Post-training, it writes more parseable tests, more tests that agree with the reference solution, and catches more bugs per valid test than the untrained baseline. The adversarial signal is real and it transfers to held-out problems.
-- **A fully implemented 5-stage reasoning pipeline.** Every stage — informal reasoning, structured reasoning, pseudocode, constraints & invariants, code — is specified with its own prompt template, reward shaping, and trainer. Compute, not code, is what kept us from running it at full scale, and the pipeline is drop-in ready for anyone with an A100 budget.
-- **Honest limits.** On our filtered held-out split, generator pass-rate improvements were small and noisy — expected for a 1.5B–8B policy with 100 PPO steps over ~dozens of problems. Scaling either the step count or the base model is the obvious next move.
+- PPO stayed stable under pure execution feedback. Two 8B LoRA models trained jointly against a sandbox, no reward model, no human feedback, clean monotonic loss curves across 100 steps. The hard part of RLHF-style training, minus the H and the F.
+- The discriminator learned. After training it writes more parseable tests, more tests that agree with the reference solution, and catches more bugs per valid test than the untrained baseline. The signal transfers to held-out problems.
+- The full 5-stage pipeline is implemented. Every stage (informal reasoning, structured reasoning, pseudocode, constraints and invariants, code) has its own prompt template, reward shaping, and trainer. Compute is what kept us from running it at scale, not missing code. Anyone with an A100 budget can run it.
+- Honest limits. On our filtered held-out split, generator pass-rate improvements were small and noisy, which is what you would expect for a 1.5B to 8B policy with 100 PPO steps over dozens of problems. Scaling either the step count or the base model is the obvious next move.
 
 The full discussion is in the final report and in `1-stage-reasoning/analysis.ipynb`.
 
@@ -149,7 +149,7 @@ The full discussion is in the final report and in `1-stage-reasoning/analysis.ip
 
 ## Stack
 
-PyTorch · Hugging Face Transformers · PEFT (LoRA) · bitsandbytes · TRL-style PPO (reimplemented) · Hugging Face datasets format · Google Colab
+PyTorch, Hugging Face Transformers, PEFT (LoRA), bitsandbytes, TRL-style PPO (reimplemented), Hugging Face datasets format, Google Colab.
 
 ## License
 
